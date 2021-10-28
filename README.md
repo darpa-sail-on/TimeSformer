@@ -1,90 +1,52 @@
 # TimeSformer
 
-This is an official pytorch implementation of our ICML 2021 paper [Is Space-Time Attention All You Need for Video Understanding?](https://arxiv.org/pdf/2102.05095.pdf). In this repository, we provide PyTorch code for training and testing our proposed TimeSformer model. TimeSformer provides an efficient video classification framework that achieves state-of-the-art results on several video action recognition benchmarks such as Kinetics-400.
-
-If you find TimeSformer useful in your research, please use the following BibTeX entry for citation.
-
-```BibTeX
-@inproceedings{gberta_2021_ICML,
-    author  = {Gedas Bertasius and Heng Wang and Lorenzo Torresani},
-    title = {Is Space-Time Attention All You Need for Video Understanding?},
-    booktitle   = {Proceedings of the International Conference on Machine Learning (ICML)}, 
-    month = {July},
-    year = {2021}
-}
-```
-
-# Model Zoo
-
-We provide TimeSformer models pretrained on Kinetics-400 (K400), Kinetics-600 (K600), Something-Something-V2 (SSv2), and HowTo100M datasets.
-
-| name | dataset | # of frames | spatial crop | acc@1 | acc@5 | url |
-| --- | --- | --- | --- | --- | --- | --- |
-| TimeSformer | K400 | 8 | 224 | 77.9 | 93.2 | [model](https://www.dropbox.com/s/g5t24we9gl5yk88/TimeSformer_divST_8x32_224_K400.pyth?dl=0) |
-| TimeSformer-HR | K400 | 16 | 448 | 79.6 | 94.0 | [model](https://www.dropbox.com/s/6f0x172lpqy3oxt/TimeSformer_divST_16x16_448_K400.pyth?dl=0) |
-| TimeSformer-L | K400 | 96 | 224 | 80.6 | 94.7 | [model](https://www.dropbox.com/s/r1iuxahif3sgimo/TimeSformer_divST_96x4_224_K400.pyth?dl=0) |
-
-| name | dataset | # of frames | spatial crop | acc@1 | acc@5 | url |
-| --- | --- | --- | --- | --- | --- | --- |
-| TimeSformer | K600 | 8 | 224 | 79.1 | 94.4 | [model](https://www.dropbox.com/s/4h2qt41m2z3aqrb/TimeSformer_divST_8x32_224_K600.pyth?dl=0) |
-| TimeSformer-HR | K600 | 16 | 448 | 81.8 | 95.8 | [model](https://www.dropbox.com/s/ft1e92g2vhvxecv/TimeSformer_divST_16x16_448_K600.pyth?dl=0) |
-| TimeSformer-L | K600 | 96 | 224 | 82.2 | 95.6 | [model](https://www.dropbox.com/s/857rx6xeclxfhdg/TimeSformer_divST_96x4_224_K600.pyth?dl=0) |
-
-| name | dataset | # of frames | spatial crop | acc@1 | acc@5 | url |
-| --- | --- | --- | --- | --- | --- | --- |
-| TimeSformer | SSv2 | 8 | 224 | 59.1 | 85.6 | [model](https://www.dropbox.com/s/tybhuml57y24wpm/TimeSformer_divST_8_224_SSv2.pyth?dl=0) |
-| TimeSformer-HR | SSv2 | 16 | 448 | 61.8 | 86.9 | [model](https://www.dropbox.com/s/9t68uzk8w2fpfnv/TimeSformer_divST_16_448_SSv2.pyth?dl=0) |
-| TimeSformer-L | SSv2 | 64 | 224 | 62.0 | 87.5 | [model](https://www.dropbox.com/s/3f1rm2al8mhprwa/TimeSformer_divST_64_224_SSv2.pyth?dl=0) |
-
-| name | dataset | # of frames | spatial crop | single clip coverage | acc@1 | url |
-| --- | --- | --- | --- | --- | --- | --- |
-| TimeSformer | HowTo100M | 8 | 224 | 8.5s | 56.8 | [model](https://www.dropbox.com/s/9v8hcm88b9tc6ff/TimeSformer_divST_8x32_224_HowTo100M.pyth?dl=0) |
-| TimeSformer | HowTo100M | 32 | 224 | 34.1s | 61.2 | [model](https://www.dropbox.com/s/4roflx4q1gscu85/TimeSformer_divST_32x32_224_HowTo100M.pyth?dl=0) |
-| TimeSformer | HowTo100M | 64 | 448 | 68.3s | 62.2 | [model](https://www.dropbox.com/s/15bvqltl1j5vyp3/TimeSformer_divST_64x32_224_HowTo100M.pyth?dl=0) |
-| TimeSformer | HowTo100M | 96 | 224 | 102.4s | 62.6 | [model](https://www.dropbox.com/s/t2mzgahnfhgakma/TimeSformer_divST_96x32_224_HowTo100M.pyth?dl=0) |
-
-We note that these models were re-trained using a slightly different implementation than the one used in the paper. Therefore, there might be a small difference in performance compared to the results reported in the paper.
-
-You can load the pretrained models as follows:
-
-```python
-import torch
-from timesformer.models.vit import TimeSformer
-
-model = TimeSformer(img_size=224, num_classes=400, num_frames=8, attention_type='divided_space_time',  pretrained_model='/path/to/pretrained/model.pyth')
-
-dummy_video = torch.randn(2, 3, 8, 224, 224) # (batch x channels x frames x height x width)
-
-pred = model(dummy_video,) # (2, 400)
-```
+This repository is a fork of [TimeSformer](https://github.com/facebookresearch/TimeSformer).
+Please refer to the original repository for replicating their work described in
+their [paper](https://arxiv.org/pdf/2102.05095.pdf).
 
 # Installation
 
-First, create a conda virtual environment and activate it:
-```
-conda create -n timesformer python=3.7 -y
-source activate timesformer
-```
+## Using Poetry
 
-Then, install the following packages:
+1. Install poetry based on the instructions provided in their [documentation](https://python-poetry.org/docs/#installation).
 
-- torchvision: `pip install torchvision` or `conda install torchvision -c pytorch`
-- [fvcore](https://github.com/facebookresearch/fvcore/): `pip install 'git+https://github.com/facebookresearch/fvcore'`
-- simplejson: `pip install simplejson`
-- einops: `pip install einops`
-- timm: `pip install timm`
-- PyAV: `conda install av -c conda-forge`
-- psutil: `pip install psutil`
-- scikit-learn: `pip install scikit-learn`
-- OpenCV: `pip install opencv-python`
-- tensorboard: `pip install tensorboard`
+2. Clone timesformer using:
+   ```
+    git clone https://github.com/facebookresearch/TimeSformer
+   ```
 
-Lastly, build the TimeSformer codebase by running:
-```
-git clone https://github.com/facebookresearch/TimeSformer
-cd TimeSformer
-python setup.py build develop
-```
+3. Create a virtual environment using the following commands:
+   ```
+    poetry install
+    poetry shell
+   ```
+
+## Using Conda
+1. Create a conda virtual environment and activate it:
+    ```
+    conda create -n timesformer python=3.7 -y
+    source activate timesformer
+    ```
+
+2. Install the following packages:
+
+    - torchvision: `pip install torchvision` or `conda install torchvision -c pytorch`
+    - [fvcore](https://github.com/facebookresearch/fvcore/): `pip install 'git+https://github.com/facebookresearch/fvcore'`
+    - simplejson: `pip install simplejson`
+    - einops: `pip install einops`
+    - timm: `pip install timm`
+    - PyAV: `conda install av -c conda-forge`
+    - psutil: `pip install psutil`
+    - scikit-learn: `pip install scikit-learn`
+    - OpenCV: `pip install opencv-python`
+    - tensorboard: `pip install tensorboard`
+
+3. Build the TimeSformer codebase by running:
+    ```
+    git clone https://github.com/facebookresearch/TimeSformer
+    cd TimeSformer
+    python setup.py build develop
+    ```
 
 # Usage
 
@@ -223,7 +185,20 @@ We actively welcome your pull requests. Please see [CONTRIBUTING.md](CONTRIBUTIN
 
 # Acknowledgements
 
-TimeSformer is built on top of [PySlowFast](https://github.com/facebookresearch/SlowFast) and [pytorch-image-models](https://github.com/rwightman/pytorch-image-models) by [Ross Wightman](https://github.com/rwightman). We thank the authors for releasing their code. If you use our model, please consider citing these works as well:
+The fork uses the original [TimeSformer](https://github.com/facebookresearch/TimeSformer),
+[PySlowFast](https://github.com/facebookresearch/SlowFast), and
+[pytorch-image-models](https://github.com/rwightman/pytorch-image-models) by [Ross Wightman](https://github.com/rwightman).
+We thank the authors for releasing their code. If you use our model, please consider citing these works as well:
+
+```BibTeX
+@inproceedings{gberta_2021_ICML,
+    author  = {Gedas Bertasius and Heng Wang and Lorenzo Torresani},
+    title = {Is Space-Time Attention All You Need for Video Understanding?},
+    booktitle   = {Proceedings of the International Conference on Machine Learning (ICML)}, 
+    month = {July},
+    year = {2021}
+}
+```
 
 ```BibTeX
 @misc{fan2020pyslowfast,
