@@ -1,0 +1,28 @@
+[tool.poetry]
+name = "timesformer"
+version = "1.0.0"
+description = "Fork of timesformer"
+authors = ["Your Name <you@example.com>"]
+
+[tool.poetry.dependencies]
+python = ">=3.7,<3.11"
+sail-on-client = {git = "https://github.com/darpa-sail-on/sail-on-client.git", rev = "add-hydra"}
+einops = ">=0.3"
+torch = ">=1.6"
+torchvision = ">=0.7"
+simplejson = "^3.17.5"
+timm = "^0.4.12"
+psutil = "^5.8.0"
+scikit-learn = "^1.0.1"
+opencv-python = "^4.5.4.58"
+tensorboard = "^2.7.0"
+fvcore = {git = "https://github.com/facebookresearch/fvcore.git", rev = "main"}
+
+[tool.poetry.dev-dependencies]
+
+[tool.poetry.extras]
+tensorboard_video_visualization = ["moviepy"]
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
