@@ -1,13 +1,13 @@
 # Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved.
-
+# Modified by Dawei Du, Kitware, Inc.
 import os
 import random
 import torch
 import torch.utils.data
 from fvcore.common.file_io import PathManager
-
+import pdb
 import timesformer.utils.logging as logging
-
+import json
 from . import decoder as decoder
 from . import utils as utils
 from . import video_container as container
@@ -16,9 +16,9 @@ logger = logging.get_logger(__name__)
 
 
 @DATASET_REGISTRY.register()
-class Kinetics(torch.utils.data.Dataset):
+class M24(torch.utils.data.Dataset):
     """
-    Kinetics video loader. Construct the Kinetics video loader, then sample
+    m24-activity video loader. Construct the m24-activity video loader, then sample
     clips from the videos. For training and validation, a single clip is
     randomly sampled from every video with random cropping, scaling, and
     flipping. For testing, multiple clips are uniformaly sampled from every
@@ -47,11 +47,7 @@ class Kinetics(torch.utils.data.Dataset):
             num_retries (int): number of retries.
         """
         # Only support train, val, and test mode.
-        assert mode in ["training",
-                        "validation",
-                        "test",
-                        "known",
-                        "unknown"], f"Split '{mode}' not supported for m24-activity"
+        assert mode in ["training", "validation", "test", "known", "unknown"], "Split '{}' not supported for m24-activity".format(mode)
         self.mode = mode
         self.cfg = cfg
 
@@ -67,8 +63,13 @@ class Kinetics(torch.utils.data.Dataset):
             self._num_clips = (
                 cfg.TEST.NUM_ENSEMBLE_VIEWS * cfg.TEST.NUM_SPATIAL_CROPS
             )
+        # adapt to TA2 json format
+        #if self.mode == "train":
+        #    self.mode = "training"
+        #elif self.mode in ["val", "test"]:
+        #    self.mode = "validation"
 
-        logger.info("Constructing Kinetics {}...".format(mode))
+        logger.info("Constructing m24-activity {}...".format(mode))
         self._construct_loader()
 
     def _get_video_names_and_annotations(self):
@@ -82,7 +83,7 @@ class Kinetics(torch.utils.data.Dataset):
                 label = value['annotations']['label']
                 video_names.append(key)
                 annotations.append(value['annotations'])
-
+        
         index = 0
         for class_label in data['labels']:
             class_to_idx[class_label] = index
@@ -95,13 +96,16 @@ class Kinetics(torch.utils.data.Dataset):
         Construct the video loader.
         """
         path_to_file = self.cfg.DATA.PATH_TO_DATA_DIR
-        assert PathManager.exists(path_to_file), f"{path_to_file} dir not found"
+        assert PathManager.exists(path_to_file), "{} dir not found".format(
+            path_to_file
+        )
 
         self._path_to_videos = []
         self._labels = []
         self._spatial_temporal_idx = []
 
         video_names, annotations, class_to_idx = self._get_video_names_and_annotations()
+        #if self.mode == "training": self.mode = "validation" # change the mode for evm training
 
         for i in range(len(video_names)):
             for idx in range(self._num_clips):
@@ -112,9 +116,13 @@ class Kinetics(torch.utils.data.Dataset):
 
         assert (
             len(self._path_to_videos) > 0
-        ), f"Failed to load kinetics split from {path_to_file}"
+        ), "Failed to load ucf101 split {} from {}".format(
+            self._split_idx, path_to_file
+        )
         logger.info(
-            f"Constructing kinetics dataloader (size: {len(self._path_to_videos)}) from {path_to_file}"
+            "Constructing ucf101 dataloader (size: {}) from {}".format(
+                len(self._path_to_videos), path_to_file
+            )
         )
 
     def __getitem__(self, index):
@@ -161,7 +169,7 @@ class Kinetics(torch.utils.data.Dataset):
                         / self.cfg.MULTIGRID.DEFAULT_S
                     )
                 )
-        elif self.mode in ["validation", "test", "known", "unknown"]:
+        elif self.mode in ["validation", "known", "unknown"]:
             temporal_sample_index = (
                 self._spatial_temporal_idx[index]
                 // self.cfg.TEST.NUM_SPATIAL_CROPS
@@ -196,7 +204,6 @@ class Kinetics(torch.utils.data.Dataset):
         )
         # Try to decode and sample a clip from a video. If the video can not be
         # decoded, repeatly find a random video replacement that can be decoded.
-
         for i_try in range(self._num_retries):
             video_container = None
             try:
@@ -286,7 +293,6 @@ class Kinetics(torch.utils.data.Dataset):
 
             return frames, label, index, {}
         else:
-            print(self._path_to_videos[index])
             raise RuntimeError(
                 "Failed to fetch video after {} retries.".format(
                     self._num_retries
