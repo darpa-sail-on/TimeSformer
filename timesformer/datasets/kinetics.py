@@ -47,11 +47,7 @@ class Kinetics(torch.utils.data.Dataset):
             num_retries (int): number of retries.
         """
         # Only support train, val, and test mode.
-        assert mode in [
-            "train",
-            "val",
-            "test",
-        ], "Split '{}' not supported for Kinetics".format(mode)
+        assert mode in ["training", "validation", "test", "known", "unknown"], "Split '{}' not supported for m24-activity".format(mode)
         self.mode = mode
         self.cfg = cfg
 
@@ -61,9 +57,9 @@ class Kinetics(torch.utils.data.Dataset):
         # video. For testing, NUM_ENSEMBLE_VIEWS clips are sampled from every
         # video. For every clip, NUM_SPATIAL_CROPS is cropped spatially from
         # the frames.
-        if self.mode in ["train", "val"]:
+        if self.mode in ["training", "validation"]:
             self._num_clips = 1
-        elif self.mode in ["test"]:
+        elif self.mode in ["test", "known", "unknown"]:
             self._num_clips = (
                 cfg.TEST.NUM_ENSEMBLE_VIEWS * cfg.TEST.NUM_SPATIAL_CROPS
             )
@@ -71,36 +67,76 @@ class Kinetics(torch.utils.data.Dataset):
         logger.info("Constructing Kinetics {}...".format(mode))
         self._construct_loader()
 
+    def _get_video_names_and_annotations(self):
+        video_names, annotations = [], []
+        with open(self.cfg.DATA.PATH_TO_DATA_DIR, 'r') as f:
+            data = json.load(f)
+        for key, value in data['database'].items():
+            this_subset = value['subset']
+            if this_subset == self.mode:
+                label = value['annotations']['label']
+                video_names.append(key)
+                annotations.append(value['annotations'])
+
+        # index for actions
+        class_to_idx = {}
+        index = 0
+        for class_label in data['labels']:
+            class_to_idx[class_label] = index
+            index += 1
+
+        # index for perspective
+        perspective_to_idx = {}
+        index = 0
+        for class_label in data['perspective']:
+            perspective_to_idx[class_label] = index
+            index += 1
+
+        # index for location
+        location_to_idx = {}
+        index = 0
+        for class_label in data['location']:
+            location_to_idx[class_label] = index
+            index += 1
+
+        # index for relation
+        relation_to_idx = {}
+        index = 0
+        for class_label in data['relation']:
+            relation_to_idx[class_label] = index
+            index += 1
+
+        relation_to_idx['None'] = index # additional none label
+        
+        return video_names, annotations, class_to_idx, perspective_to_idx, location_to_idx, relation_to_idx
+
+
     def _construct_loader(self):
         """
         Construct the video loader.
         """
-        path_to_file = os.path.join(
-            self.cfg.DATA.PATH_TO_DATA_DIR, "{}.csv".format(self.mode)
-        )
-        assert PathManager.exists(path_to_file), "{} dir not found".format(
-            path_to_file
-        )
+        path_to_file = self.cfg.DATA.PATH_TO_DATA_DIR
+        assert PathManager.exists(path_to_file), "{} dir not found".format(path_to_file)
 
         self._path_to_videos = []
-        self._labels = []
         self._spatial_temporal_idx = []
-        with PathManager.open(path_to_file, "r") as f:
-            for clip_idx, path_label in enumerate(f.read().splitlines()):
-                assert (
-                    len(path_label.split(self.cfg.DATA.PATH_LABEL_SEPARATOR))
-                    == 2
-                )
-                path, label = path_label.split(
-                    self.cfg.DATA.PATH_LABEL_SEPARATOR
-                )
-                for idx in range(self._num_clips):
-                    self._path_to_videos.append(
-                        os.path.join(self.cfg.DATA.PATH_PREFIX, path)
-                    )
-                    self._labels.append(int(label))
-                    self._spatial_temporal_idx.append(idx)
-                    self._video_meta[clip_idx * self._num_clips + idx] = {}
+        self._labels = []
+        self._perspective = []
+        self._location = []
+        self._relation = []
+
+        video_names, annotations, class_to_idx, perspective_to_idx, location_to_idx, relation_to_idx = self._get_video_names_and_annotations()
+
+        for i in range(len(video_names)):
+            for idx in range(self._num_clips):
+                self._path_to_videos.append(video_names[i])
+                self._spatial_temporal_idx.append(idx)
+                self._video_meta[i * self._num_clips + idx] = {}
+                self._labels.append(int(class_to_idx[annotations[i]['label']]))
+                self._perspective.append(int(perspective_to_idx[annotations[i]['perspective']]))
+                self._location.append(int(location_to_idx[annotations[i]['location']]))
+                self._relation.append([int(relation_to_idx[annotations[i]['relation1']]), int(relation_to_idx[annotations[i]['relation2']])])
+
         assert (
             len(self._path_to_videos) > 0
         ), "Failed to load Kinetics split {} from {}".format(
@@ -132,7 +168,7 @@ class Kinetics(torch.utils.data.Dataset):
         if isinstance(index, tuple):
             index, short_cycle_idx = index
 
-        if self.mode in ["train", "val"]:
+        if self.mode in ["training"]:
             # -1 indicates random sampling.
             temporal_sample_index = -1
             spatial_sample_index = -1
@@ -156,7 +192,7 @@ class Kinetics(torch.utils.data.Dataset):
                         / self.cfg.MULTIGRID.DEFAULT_S
                     )
                 )
-        elif self.mode in ["test"]:
+        elif self.mode in ["validation", "test", "known", "unknown"]:
             temporal_sample_index = (
                 self._spatial_temporal_idx[index]
                 // self.cfg.TEST.NUM_SPATIAL_CROPS
@@ -245,6 +281,10 @@ class Kinetics(torch.utils.data.Dataset):
 
 
             label = self._labels[index]
+            perspective = self._perspective[index]
+            location = self._location[index]
+            relation = self._relation[index]
+
 
             # Perform color normalization.
             frames = utils.tensor_normalize(
@@ -278,8 +318,9 @@ class Kinetics(torch.utils.data.Dataset):
                      ).long(),
                 )
 
-            return frames, label, index, {}
+            return frames, label, perspective, location, relation, index, {}
         else:
+            print(self._path_to_videos[index])
             raise RuntimeError(
                 "Failed to fetch video after {} retries.".format(
                     self._num_retries
