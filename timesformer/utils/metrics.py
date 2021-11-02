@@ -5,7 +5,7 @@
 import torch
 import numpy as np
 
-def topks_correct(preds, labels, ks):
+def topks_correct(preds, labels, ks, flag = False):
     """
     Given the predictions, labels, and a list of top-k values, compute the
     number of correct predictions for each top-k value.
@@ -28,14 +28,23 @@ def topks_correct(preds, labels, ks):
     _top_max_k_vals, top_max_k_inds = torch.topk(
         preds, max(ks), dim=1, largest=True, sorted=True
     )
-    # (batch_size, max_k) -> (max_k, batch_size).
-    top_max_k_inds = top_max_k_inds.t()
-    # (batch_size, ) -> (max_k, batch_size).
-    rep_max_k_labels = labels.view(1, -1).expand_as(top_max_k_inds)
-    # (i, j) = 1 if top i-th prediction for the j-th sample is correct.
-    top_max_k_correct = top_max_k_inds.eq(rep_max_k_labels)
+    if flag:
+        top_max_k_correct = top_max_k_inds.eq(1-top_max_k_inds)
+        for i in range(labels.shape[0]):
+            if 52 in labels[i]:
+                top_max_k_correct[i] = top_max_k_inds[i][0] in labels[i]# and _top_max_k_vals[i][0] > 0.5 and _top_max_k_vals[i][1] < 0.5
+            else:
+                top_max_k_correct[i] = top_max_k_inds[i][0] in labels[i] and top_max_k_inds[i][1] in labels[i]# and _top_max_k_vals[i][0] > 0.5 and _top_max_k_vals[i][1] > 0.5
+    else:
+        # (batch_size, max_k) -> (max_k, batch_size).
+        top_max_k_inds = top_max_k_inds.t()
+        # (batch_size, ) -> (max_k, batch_size).
+        rep_max_k_labels = labels.view(1, -1).expand_as(top_max_k_inds)
+        # (i, j) = 1 if top i-th prediction for the j-th sample is correct.
+        top_max_k_correct = top_max_k_inds.eq(rep_max_k_labels)
     # Compute the number of topk correct predictions for each k.
     topks_correct = [top_max_k_correct[:k, :].float().sum() for k in ks]
+
     return topks_correct
 
 
