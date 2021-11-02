@@ -176,9 +176,9 @@ class PatchEmbed(nn.Module):
 
 
 class VisionTransformer(nn.Module):
-    """ Vision Transformere
+    """ Vision Transformer
     """
-    def __init__(self, img_size=224, patch_size=16, in_chans=3, num_classes=1000, embed_dim=768, depth=12,
+    def __init__(self, img_size=224, patch_size=16, in_chans=3, num_classes=1000, num_perspectives=5, num_locations=2, num_relations=52, embed_dim=768, depth=12,
                  num_heads=12, mlp_ratio=4., qkv_bias=False, qk_scale=None, drop_rate=0., attn_drop_rate=0.,
                  drop_path_rate=0.1, hybrid_backbone=None, norm_layer=nn.LayerNorm, num_frames=8, attention_type='divided_space_time', dropout=0.):
         super().__init__()
@@ -187,8 +187,7 @@ class VisionTransformer(nn.Module):
         self.dropout = nn.Dropout(dropout)
         self.num_classes = num_classes
         self.num_features = self.embed_dim = embed_dim  # num_features for consistency with other models
-        self.patch_embed = PatchEmbed(
-            img_size=img_size, patch_size=patch_size, in_chans=in_chans, embed_dim=embed_dim)
+        self.patch_embed = PatchEmbed(img_size=img_size, patch_size=patch_size, in_chans=in_chans, embed_dim=embed_dim)
         num_patches = self.patch_embed.num_patches
 
         ## Positional Embeddings
@@ -210,6 +209,9 @@ class VisionTransformer(nn.Module):
 
         # Classifier head
         self.head = nn.Linear(embed_dim, num_classes) if num_classes > 0 else nn.Identity()
+        self.perspective = nn.Linear(embed_dim, num_perspectives) if num_perspectives > 0 else nn.Identity()
+        self.location = nn.Linear(embed_dim, num_locations) if num_locations > 0 else nn.Identity()
+        self.relation = nn.Linear(embed_dim, num_relations) if num_relations > 0 else nn.Identity()
 
         trunc_normal_(self.pos_embed, std=.02)
         trunc_normal_(self.cls_token, std=.02)
@@ -240,11 +242,14 @@ class VisionTransformer(nn.Module):
         return {'pos_embed', 'cls_token', 'time_embed'}
 
     def get_classifier(self):
-        return self.head
+        return self.head, self.perspective, self.location, self.relation
 
-    def reset_classifier(self, num_classes, global_pool=''):
+    def reset_classifier(self, num_classes, num_perspectives, num_locations, num_relations, global_pool=''):
         self.num_classes = num_classes
         self.head = nn.Linear(self.embed_dim, num_classes) if num_classes > 0 else nn.Identity()
+        self.perspective = nn.Linear(embed_dim, num_perspectives) if num_perspectives > 0 else nn.Identity()
+        self.location = nn.Linear(embed_dim, num_locations) if num_locations > 0 else nn.Identity()
+        self.relation = nn.Linear(embed_dim, num_relations) if num_relations > 0 else nn.Identity()
 
     def forward_features(self, x):
         B = x.shape[0]
@@ -257,9 +262,8 @@ class VisionTransformer(nn.Module):
             pos_embed = self.pos_embed
             cls_pos_embed = pos_embed[0,0,:].unsqueeze(0).unsqueeze(1)
             other_pos_embed = pos_embed[0,1:,:].unsqueeze(0).transpose(1, 2)
-            P = int(other_pos_embed.size(2) ** 0.5)
             H = x.size(1) // W
-            other_pos_embed = other_pos_embed.reshape(1, x.size(2), P, P)
+            other_pos_embed = other_pos_embed.reshape(1, x.size(2), 14, 14)
             new_pos_embed = F.interpolate(other_pos_embed, size=(H, W), mode='nearest')
             new_pos_embed = new_pos_embed.flatten(2)
             new_pos_embed = new_pos_embed.transpose(1, 2)
@@ -275,14 +279,7 @@ class VisionTransformer(nn.Module):
             cls_tokens = x[:B, 0, :].unsqueeze(1)
             x = x[:,1:]
             x = rearrange(x, '(b t) n m -> (b n) t m',b=B,t=T)
-            ## Resizing time embeddings in case they don't match
-            if T != self.time_embed.size(1):
-                time_embed = self.time_embed.transpose(1, 2)
-                new_time_embed = F.interpolate(time_embed, size=(T), mode='nearest')
-                new_time_embed = new_time_embed.transpose(1, 2)
-                x = x + new_time_embed
-            else:
-                x = x + self.time_embed
+            x = x + self.time_embed
             x = self.time_drop(x)
             x = rearrange(x, '(b n) t m -> b (n t) m',b=B,t=T)
             x = torch.cat((cls_tokens, x), dim=1)
@@ -300,9 +297,13 @@ class VisionTransformer(nn.Module):
         return x[:, 0]
 
     def forward(self, x):
-        x = self.forward_features(x)
-        x = self.head(x)
-        return x
+        feat = self.forward_features(x)
+        x = self.head(feat)
+        x_per = self.perspective(feat)
+        x_loc = self.location(feat)
+        x_rel = self.relation(feat)
+
+        return x, x_per, x_loc, x_rel, feat
 
 def _conv_filter(state_dict, patch_size=16):
     """ convert patch embedding weight from manual patchify + linear proj to conv"""
@@ -321,31 +322,16 @@ class vit_base_patch16_224(nn.Module):
         super(vit_base_patch16_224, self).__init__()
         self.pretrained=True
         patch_size = 16
-        self.model = VisionTransformer(img_size=cfg.DATA.TRAIN_CROP_SIZE, num_classes=cfg.MODEL.NUM_CLASSES, patch_size=patch_size, embed_dim=768, depth=12, num_heads=12, mlp_ratio=4, qkv_bias=True, norm_layer=partial(nn.LayerNorm, eps=1e-6), drop_rate=0., attn_drop_rate=0., drop_path_rate=0.1, num_frames=cfg.DATA.NUM_FRAMES, attention_type=cfg.TIMESFORMER.ATTENTION_TYPE, **kwargs)
-
+        self.model = VisionTransformer(img_size=cfg.DATA.TRAIN_CROP_SIZE, num_classes=cfg.MODEL.NUM_CLASSES, num_perspectives=cfg.MODEL.NUM_PERSPECTIVES, num_locations=cfg.MODEL.NUM_LOCATIONS, num_relations=cfg.MODEL.NUM_RELATIONS, patch_size=patch_size, embed_dim=768, depth=12, num_heads=12, mlp_ratio=4, qkv_bias=True, norm_layer=partial(nn.LayerNorm, eps=1e-6), drop_rate=0., attn_drop_rate=0., drop_path_rate=0.1, num_frames=cfg.DATA.NUM_FRAMES, attention_type=cfg.TIMESFORMER.ATTENTION_TYPE, **kwargs)
         self.attention_type = cfg.TIMESFORMER.ATTENTION_TYPE
         self.model.default_cfg = default_cfgs['vit_base_patch16_224']
         self.num_patches = (cfg.DATA.TRAIN_CROP_SIZE // patch_size) * (cfg.DATA.TRAIN_CROP_SIZE // patch_size)
-        pretrained_model=cfg.TIMESFORMER.PRETRAINED_MODEL
+        pretrained_model = cfg.TIMESFORMER.PRETRAINED_MODEL
         if self.pretrained:
+            print("load pre-trained weights...")
             load_pretrained(self.model, num_classes=self.model.num_classes, in_chans=kwargs.get('in_chans', 3), filter_fn=_conv_filter, img_size=cfg.DATA.TRAIN_CROP_SIZE, num_patches=self.num_patches, attention_type=self.attention_type, pretrained_model=pretrained_model)
 
     def forward(self, x):
-        x = self.model(x)
-        return x
+        x, x_per, x_loc, x_rel, feat = self.model(x)
 
-@MODEL_REGISTRY.register()
-class TimeSformer(nn.Module):
-    def __init__(self, img_size=224, patch_size=16, num_classes=400, num_frames=8, attention_type='divided_space_time',  pretrained_model='', **kwargs):
-        super(TimeSformer, self).__init__()
-        self.pretrained=True
-        self.model = VisionTransformer(img_size=img_size, num_classes=num_classes, patch_size=patch_size, embed_dim=768, depth=12, num_heads=12, mlp_ratio=4, qkv_bias=True, norm_layer=partial(nn.LayerNorm, eps=1e-6), drop_rate=0., attn_drop_rate=0., drop_path_rate=0.1, num_frames=num_frames, attention_type=attention_type, **kwargs)
-
-        self.attention_type = attention_type
-        self.model.default_cfg = default_cfgs['vit_base_patch'+str(patch_size)+'_224']
-        self.num_patches = (img_size // patch_size) * (img_size // patch_size)
-        if self.pretrained:
-            load_pretrained(self.model, num_classes=self.model.num_classes, in_chans=kwargs.get('in_chans', 3), filter_fn=_conv_filter, img_size=img_size, num_frames=num_frames, num_patches=self.num_patches, attention_type=self.attention_type, pretrained_model=pretrained_model)
-    def forward(self, x):
-        x = self.model(x)
-        return x
+        return x, x_per, x_loc, x_rel, feat
