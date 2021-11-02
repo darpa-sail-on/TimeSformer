@@ -61,13 +61,13 @@ def construct_loader(cfg, split, is_precise_bn=False):
         split (str): the split of the data loader. Options include `train`,
             `val`, and `test`.
     """
-    assert split in ["train", "val", "test"]
-    if split in ["train"]:
+    assert split in ["training", "validation", "test", "known", "unknown"]
+    if split in ["training"]:
         dataset_name = cfg.TRAIN.DATASET
         batch_size = int(cfg.TRAIN.BATCH_SIZE / max(1, cfg.NUM_GPUS))
         shuffle = True
         drop_last = True
-    elif split in ["val"]:
+    elif split in ["validation"]:
         dataset_name = cfg.TRAIN.DATASET
         batch_size = int(cfg.TRAIN.BATCH_SIZE / max(1, cfg.NUM_GPUS))
         shuffle = False
@@ -77,11 +77,21 @@ def construct_loader(cfg, split, is_precise_bn=False):
         batch_size = int(cfg.TEST.BATCH_SIZE / max(1, cfg.NUM_GPUS))
         shuffle = False
         drop_last = False
+    elif split in ["known"]:
+        dataset_name = cfg.TEST.DATASET
+        batch_size = int(cfg.TEST.BATCH_SIZE / max(1, cfg.NUM_GPUS))
+        shuffle = False
+        drop_last = False
+    elif split in ["unknown"]:
+        dataset_name = cfg.TEST.DATASET
+        batch_size = int(cfg.TEST.BATCH_SIZE / max(1, cfg.NUM_GPUS))
+        shuffle = False
+        drop_last = False
 
     # Construct the dataset
     dataset = build_dataset(dataset_name, cfg, split)
 
-    if cfg.MULTIGRID.SHORT_CYCLE and split in ["train"] and not is_precise_bn:
+    if cfg.MULTIGRID.SHORT_CYCLE and split in ["training"] and not is_precise_bn:
         # Create a sampler for multi-process training
         sampler = utils.create_sampler(dataset, shuffle, cfg)
         batch_sampler = ShortCycleBatchSampler(
