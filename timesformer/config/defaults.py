@@ -211,6 +211,15 @@ _C.MODEL.MODEL_NAME = "SlowFast"
 # The number of classes to predict for the model.
 _C.MODEL.NUM_CLASSES = 400
 
+# The number of perspectives to predict for the model.
+_C.MODEL.NUM_PERSPECTIVES = 400
+
+# The number of locations to predict for the model.
+_C.MODEL.NUM_LOCATIONS = 400
+
+# The number of relations to predict for the model.
+_C.MODEL.NUM_RELATIONS = 400
+
 # Loss function.
 _C.MODEL.LOSS_FUNC = "cross_entropy"
 
@@ -420,7 +429,7 @@ _C.OUTPUT_DIR = "./tmp"
 _C.RNG_SEED = 1
 
 # Log period in iters.
-_C.LOG_PERIOD = 10
+_C.LOG_PERIOD = 50
 
 # If True, log the model info.
 _C.LOG_MODEL_INFO = False
