@@ -19,7 +19,6 @@ import timesformer.visualization.tensorboard_vis as tb
 from timesformer.datasets import loader
 from timesformer.models import build_model
 from timesformer.utils.meters import TestMeter
-
 logger = logging.get_logger(__name__)
 
 
@@ -48,7 +47,7 @@ def perform_test(test_loader, model, test_meter, cfg, writer=None):
     model.eval()
     test_meter.iter_tic()
 
-    for cur_iter, (inputs, labels, video_idx, meta) in enumerate(test_loader):
+    for cur_iter, (inputs, labels, perspectives, locations, relations, video_idx, meta) in enumerate(test_loader):
         if cfg.NUM_GPUS:
             # Transfer the data to the current GPU device.
             if isinstance(inputs, (list,)):
@@ -59,7 +58,16 @@ def perform_test(test_loader, model, test_meter, cfg, writer=None):
 
             # Transfer the data to the current GPU device.
             labels = labels.cuda()
+            perspectives = perspectives.cuda()
+            locations = locations.cuda()
+            relations = torch.stack(relations).t().cuda()
+            relations_ = torch.zeros([cfg.TRAIN.BATCH_SIZE//cfg.NUM_GPUS,cfg.MODEL.NUM_RELATIONS]).cuda()
+            for i in range(relations.shape[0]):
+                relations_[i, relations[i,0]] = 1
+                if relations[i,1] < cfg.MODEL.NUM_RELATIONS: 
+                    relations_[i, relations[i,1]] = 1
             video_idx = video_idx.cuda()
+
             for key, val in meta.items():
                 if isinstance(val, (list,)):
                     for i in range(len(val)):
@@ -70,11 +78,16 @@ def perform_test(test_loader, model, test_meter, cfg, writer=None):
 
         if cfg.DETECTION.ENABLE:
             # Compute the predictions.
-            preds = model(inputs, meta["boxes"])
+            preds, preds_per, preds_loc, preds_rel, feats = model(inputs, meta["boxes"])
             ori_boxes = meta["ori_boxes"]
             metadata = meta["metadata"]
 
             preds = preds.detach().cpu() if cfg.NUM_GPUS else preds.detach()
+            preds_per = preds_per.detach().cpu() if cfg.NUM_GPUS else preds_per.detach()
+            preds_loc = preds_loc.detach().cpu() if cfg.NUM_GPUS else preds_loc.detach()
+            preds_rel = preds_rel.detach().cpu() if cfg.NUM_GPUS else preds_rel.detach()
+            feats = feats.detach().cpu() if cfg.NUM_GPUS else feats.detach()
+
             ori_boxes = (
                 ori_boxes.detach().cpu() if cfg.NUM_GPUS else ori_boxes.detach()
             )
@@ -84,6 +97,10 @@ def perform_test(test_loader, model, test_meter, cfg, writer=None):
 
             if cfg.NUM_GPUS > 1:
                 preds = torch.cat(du.all_gather_unaligned(preds), dim=0)
+                preds_per = torch.cat(du.all_gather_unaligned(preds_per), dim=0)
+                preds_loc = torch.cat(du.all_gather_unaligned(preds_loc), dim=0)
+                preds_rel = torch.cat(du.all_gather_unaligned(preds_rel), dim=0)
+                feats = torch.cat(du.all_gather_unaligned(feats), dim=0)
                 ori_boxes = torch.cat(du.all_gather_unaligned(ori_boxes), dim=0)
                 metadata = torch.cat(du.all_gather_unaligned(metadata), dim=0)
 
@@ -93,18 +110,24 @@ def perform_test(test_loader, model, test_meter, cfg, writer=None):
             test_meter.log_iter_stats(None, cur_iter)
         else:
             # Perform the forward pass.
-            preds = model(inputs)
-
+            preds, preds_per, preds_loc, preds_rel, feats = model(inputs)
+            #print(preds.shape, labels, video_idx)
             # Gather all the predictions across all the devices to perform ensemble.
             if cfg.NUM_GPUS > 1:
-                preds, labels, video_idx = du.all_gather(
-                    [preds, labels, video_idx]
+                preds, feats, labels, preds_per, preds_loc, preds_rel, perspectives, locations, relations, video_idx = du.all_gather(
+                    [preds.contiguous(), feats.contiguous(), labels.contiguous(), preds_per.contiguous(), preds_loc.contiguous(), preds_rel.contiguous(), perspectives.contiguous(), locations.contiguous(), relations.contiguous(), video_idx.contiguous()]
                 )
             if cfg.NUM_GPUS:
                 preds = preds.cpu()
+                preds_per = preds_per.cpu()
+                preds_loc = preds_loc.cpu()
+                preds_rel = preds_rel.cpu()
+                feats = feats.cpu()
                 labels = labels.cpu()
+                perspectives = perspectives.cpu()
+                locations = locations.cpu()
+                relations = relations.cpu()
                 video_idx = video_idx.cpu()
-
             test_meter.iter_toc()
             # Update and log stats.
             test_meter.update_stats(
@@ -155,8 +178,8 @@ def test(cfg):
     logging.setup_logging(cfg.OUTPUT_DIR)
 
     # Print config.
-    logger.info("Test with config:")
-    logger.info(cfg)
+    #logger.info("Test with config:")
+    #logger.info(cfg)
 
     # Build the video model and print model statistics.
     model = build_model(cfg)

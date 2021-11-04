@@ -268,9 +268,15 @@ class TrainMeter(object):
         # Current minibatch errors (smoothed over a window).
         self.mb_top1_err = ScalarMeter(cfg.LOG_PERIOD)
         self.mb_top5_err = ScalarMeter(cfg.LOG_PERIOD)
+        self.mb_top1_err_per = ScalarMeter(cfg.LOG_PERIOD)
+        self.mb_top1_err_loc = ScalarMeter(cfg.LOG_PERIOD)
+        self.mb_top1_err_rel = ScalarMeter(cfg.LOG_PERIOD)
         # Number of misclassified examples.
         self.num_top1_mis = 0
         self.num_top5_mis = 0
+        self.num_top1_mis_per = 0
+        self.num_top1_mis_loc = 0
+        self.num_top1_mis_rel = 0
         self.num_samples = 0
         self.output_dir = cfg.OUTPUT_DIR
         self.extra_stats = {}
@@ -286,8 +292,14 @@ class TrainMeter(object):
         self.lr = None
         self.mb_top1_err.reset()
         self.mb_top5_err.reset()
+        self.mb_top1_err_per.reset()
+        self.mb_top1_err_loc.reset()
+        self.mb_top1_err_rel.reset()
         self.num_top1_mis = 0
         self.num_top5_mis = 0
+        self.num_top1_mis_per = 0
+        self.num_top1_mis_loc = 0
+        self.num_top1_mis_rel = 0
         self.num_samples = 0
 
         for key in self.extra_stats.keys():
@@ -312,12 +324,15 @@ class TrainMeter(object):
         self.data_timer.pause()
         self.net_timer.reset()
 
-    def update_stats(self, top1_err, top5_err, loss, lr, mb_size, stats={}):
+    def update_stats(self, top1_err, top5_err, top1_err_per, top1_err_loc, top1_err_rel, loss, lr, mb_size, stats={}):
         """
         Update the current stats.
         Args:
             top1_err (float): top1 error rate.
             top5_err (float): top5 error rate.
+            top1_err_per (float): top1 error rate for perspective.
+            top1_err_loc (float): top1 error rate for locations.
+            top1_err_rel (float): top1 error rate for relations.
             loss (float): loss value.
             lr (float): learning rate.
             mb_size (int): mini batch size.
@@ -331,9 +346,15 @@ class TrainMeter(object):
             # Current minibatch stats
             self.mb_top1_err.add_value(top1_err)
             self.mb_top5_err.add_value(top5_err)
+            self.mb_top1_err_per.add_value(top1_err_per)
+            self.mb_top1_err_loc.add_value(top1_err_loc)
+            self.mb_top1_err_rel.add_value(top1_err_rel)
             # Aggregate stats
             self.num_top1_mis += top1_err * mb_size
             self.num_top5_mis += top5_err * mb_size
+            self.num_top1_mis_per += top1_err_per * mb_size
+            self.num_top1_mis_loc += top1_err_loc * mb_size
+            self.num_top1_mis_rel += top1_err_rel * mb_size
 
         for key in stats.keys():
             if key not in self.extra_stats:
@@ -370,6 +391,9 @@ class TrainMeter(object):
         if not self._cfg.DATA.MULTI_LABEL:
             stats["top1_err"] = self.mb_top1_err.get_win_median()
             stats["top5_err"] = self.mb_top5_err.get_win_median()
+            stats["top1_err_per"] = self.mb_top1_err_per.get_win_median()
+            stats["top1_err_loc"] = self.mb_top1_err_loc.get_win_median()
+            stats["top1_err_rel"] = self.mb_top1_err_rel.get_win_median()
         for key in self.extra_stats.keys():
             stats[key] = self.extra_stats_total[key] / self.num_samples
         logging.log_json_stats(stats)
@@ -399,8 +423,14 @@ class TrainMeter(object):
             top1_err = self.num_top1_mis / self.num_samples
             top5_err = self.num_top5_mis / self.num_samples
             avg_loss = self.loss_total / self.num_samples
+            top1_err_per = self.num_top1_mis_per / self.num_samples
+            top1_err_loc = self.num_top1_mis_loc / self.num_samples
+            top1_err_rel = self.num_top1_mis_rel / self.num_samples
             stats["top1_err"] = top1_err
             stats["top5_err"] = top5_err
+            stats["top1_err_per"] = top1_err_per
+            stats["top1_err_loc"] = top1_err_loc
+            stats["top1_err_rel"] = top1_err_rel
             stats["loss"] = avg_loss
         for key in self.extra_stats.keys():
             stats[key] = self.extra_stats_total[key] / self.num_samples
@@ -426,15 +456,30 @@ class ValMeter(object):
         # Current minibatch errors (smoothed over a window).
         self.mb_top1_err = ScalarMeter(cfg.LOG_PERIOD)
         self.mb_top5_err = ScalarMeter(cfg.LOG_PERIOD)
+        self.mb_top1_err_per = ScalarMeter(cfg.LOG_PERIOD)
+        self.mb_top1_err_loc = ScalarMeter(cfg.LOG_PERIOD)
+        self.mb_top1_err_rel = ScalarMeter(cfg.LOG_PERIOD)
         # Min errors (over the full val set).
         self.min_top1_err = 100.0
         self.min_top5_err = 100.0
+        self.min_top1_err_per = 100.0
+        self.min_top1_err_loc = 100.0
+        self.min_top1_err_rel = 100.0
         # Number of misclassified examples.
         self.num_top1_mis = 0
         self.num_top5_mis = 0
+        self.num_top1_mis_per = 0
+        self.num_top1_mis_loc = 0
+        self.num_top1_mis_rel = 0
         self.num_samples = 0
         self.all_preds = []
         self.all_labels = []
+        self.all_preds_per = []
+        self.all_perspectives = []
+        self.all_preds_loc = []
+        self.all_locations = []
+        self.all_preds_rel = []
+        self.all_relations = []
         self.output_dir = cfg.OUTPUT_DIR
         self.extra_stats = {}
         self.extra_stats_total = {}
@@ -447,11 +492,23 @@ class ValMeter(object):
         self.iter_timer.reset()
         self.mb_top1_err.reset()
         self.mb_top5_err.reset()
+        self.mb_top1_err_per.reset()
+        self.mb_top1_err_loc.reset()
+        self.mb_top1_err_rel.reset()
         self.num_top1_mis = 0
         self.num_top5_mis = 0
+        self.num_top1_mis_per = 0
+        self.num_top1_mis_loc = 0
+        self.num_top1_mis_rel = 0
         self.num_samples = 0
         self.all_preds = []
         self.all_labels = []
+        self.all_preds_per = []
+        self.all_perspectives = []
+        self.all_preds_loc = []
+        self.all_locations = []
+        self.all_preds_rel = []
+        self.all_relations = []
 
         for key in self.extra_stats.keys():
             self.extra_stats[key].reset()
@@ -475,18 +532,27 @@ class ValMeter(object):
         self.data_timer.pause()
         self.net_timer.reset()
 
-    def update_stats(self, top1_err, top5_err, mb_size, stats={}):
+    def update_stats(self, top1_err, top5_err, top1_err_per, top1_err_loc, top1_err_rel, mb_size, stats={}):
         """
         Update the current stats.
         Args:
             top1_err (float): top1 error rate.
             top5_err (float): top5 error rate.
+            top1_err_per (float): top1 error rate for perspective.
+            top1_err_loc (float): top1 error rate for locations.
+            top1_err_rel (float): top1 error rate for relations.
             mb_size (int): mini batch size.
         """
         self.mb_top1_err.add_value(top1_err)
         self.mb_top5_err.add_value(top5_err)
+        self.mb_top1_err_per.add_value(top1_err_per)
+        self.mb_top1_err_loc.add_value(top1_err_loc)
+        self.mb_top1_err_rel.add_value(top1_err_rel)
         self.num_top1_mis += top1_err * mb_size
         self.num_top5_mis += top5_err * mb_size
+        self.num_top1_mis_per += top1_err_per * mb_size
+        self.num_top1_mis_loc += top1_err_loc * mb_size
+        self.num_top1_mis_rel += top1_err_rel * mb_size
         self.num_samples += mb_size
 
         for key in stats.keys():
@@ -497,16 +563,28 @@ class ValMeter(object):
             self.extra_stats_total[key] += stats[key] * mb_size
 
 
-    def update_predictions(self, preds, labels):
+    def update_predictions(self, preds, labels, preds_per, perspectives, preds_loc, locations, preds_rel, relations):
         """
         Update predictions and labels.
         Args:
             preds (tensor): model output predictions.
             labels (tensor): labels.
+            preds_per (tensor): model output predictions of perspectives.
+            perspectives (tensor): labels of perspectives.
+            preds_loc (tensor): model output predictions of locations.
+            locations (tensor): labels of locations.
+            preds_rel (tensor): model output predictions of relations.
+            relations (tensor): labels of relations.
         """
         # TODO: merge update_prediction with update_stats.
         self.all_preds.append(preds)
         self.all_labels.append(labels)
+        self.all_preds_per.append(preds_per)
+        self.all_perspectives.append(perspectives)
+        self.all_preds_loc.append(preds_loc)
+        self.all_locations.append(locations)
+        self.all_preds_rel.append(preds_rel)
+        self.all_relations.append(relations)
 
     def log_iter_stats(self, cur_epoch, cur_iter):
         """
@@ -530,6 +608,9 @@ class ValMeter(object):
         if not self._cfg.DATA.MULTI_LABEL:
             stats["top1_err"] = self.mb_top1_err.get_win_median()
             stats["top5_err"] = self.mb_top5_err.get_win_median()
+            stats["top1_err_per"] = self.mb_top1_err_per.get_win_median()
+            stats["top1_err_loc"] = self.mb_top1_err_loc.get_win_median()
+            stats["top1_err_rel"] = self.mb_top1_err_rel.get_win_median()
         for key in self.extra_stats.keys():
             stats[key] = self.extra_stats[key].get_win_median()
         logging.log_json_stats(stats)
@@ -555,13 +636,25 @@ class ValMeter(object):
         else:
             top1_err = self.num_top1_mis / self.num_samples
             top5_err = self.num_top5_mis / self.num_samples
+            top1_err_per = self.num_top1_mis_per / self.num_samples
+            top1_err_loc = self.num_top1_mis_loc / self.num_samples
+            top1_err_rel = self.num_top1_mis_rel / self.num_samples
             self.min_top1_err = min(self.min_top1_err, top1_err)
             self.min_top5_err = min(self.min_top5_err, top5_err)
+            self.min_top1_err_per = min(self.min_top1_err_per, top1_err_per)
+            self.min_top1_err_loc = min(self.min_top1_err_loc, top1_err_loc)
+            self.min_top1_err_rel = min(self.min_top1_err_rel, top1_err_rel)
 
             stats["top1_err"] = top1_err
             stats["top5_err"] = top5_err
+            stats["top1_err_per"] = top1_err_per
+            stats["top1_err_loc"] = top1_err_loc
+            stats["top1_err_rel"] = top1_err_rel
             stats["min_top1_err"] = self.min_top1_err
             stats["min_top5_err"] = self.min_top5_err
+            stats["min_top1_err_per"] = self.min_top1_err_per
+            stats["min_top1_err_loc"] = self.min_top1_err_loc
+            stats["min_top1_err_rel"] = self.min_top1_err_rel
 
         for key in self.extra_stats.keys():
             stats[key] = self.extra_stats_total[key] / self.num_samples
