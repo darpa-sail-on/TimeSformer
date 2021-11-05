@@ -10,14 +10,19 @@ their [paper](https://arxiv.org/pdf/2102.05095.pdf).
 
 1. Install poetry based on the instructions provided in their [documentation](https://python-poetry.org/docs/#installation).
 
-2. Clone timesformer using:
+2. Clone timesformer along with additional dependencies using:
    ```
     git clone https://github.com/facebookresearch/TimeSformer
+    git clone https://github.com/darpa-sail-on/Sail_On_Evaluate.git
+    git clone https://github.com/darpa-sail-on/Sail-On-API.git
    ```
+   This would create TimeSformer,
+   Sail-On-API and sail-on-client directories in your working directory
 
-3. Create a virtual environment using the following commands:
+3. Create a virtual environment and install the components using the following commands:
    ```
     poetry install
+    poetry run pip install ../Sail-On-API/ ../Sail_On_Evaluate/
     poetry shell
    ```
 
@@ -48,7 +53,43 @@ their [paper](https://arxiv.org/pdf/2102.05095.pdf).
     python setup.py build develop
     ```
 
+4. Install Additional dependencies using:
+   ```
+   pip install ../Sail-On-API/ ../Sail_On_Evaluate/
+   ```
+
 # Usage
+
+## M-24 Evaluation
+
+### Feature Extraction
+
+1. Download the `checkpoint_epoch_00015.pyth` from [google drive](https://drive.google.com/drive/folders/1NbYqoOBoSl8iUi-tHy0uE1AkRkxzkMki?usp=sharing)
+2. If you are using the evaluation use the following command
+   ```
+   HYDRA_FULL_ERROR=1 sail-on-client --config-dir <your working directory>/TimeSformer/configs/ \
+                                     --config-name feature_extraction_par \
+                                     server_url=<url for server> \
+                                     protocol.smqtk.config.dataset_root=<root directory for videos> \
+                                     model_root=<root directory for models> \
+                                     protocol.smqtk.config.feature_dir=<root directory where features are saved> \
+                                     algorithms@protocol.smqtk.config.algorithms=[timesformer_base] \
+                                     protocol.smqtk.config.test_ids=[<comma seperated list of test ids>]
+   ```
+
+3. If you are using the files on your machine use the following command
+   ```
+   HYDRA_FULL_ERROR=1 sail-on-client --config-dir <your working directory>/TimeSformer/configs/ \
+                                     --config-name feature_extraction_local \
+                                     test_root=<root directory for tests> \
+                                     protocol.smqtk.config.dataset_root=<root directory for videos> \
+                                     model_root=<root directory for models> \
+                                     protocol.smqtk.config.feature_dir=<root directory where features are saved> \
+                                     algorithms@protocol.smqtk.config.algorithms=[timesformer_base] \
+                                     protocol.smqtk.config.test_ids=[<comma seperated list of test ids>]
+   ```
+
+# Training Network
 
 ## Dataset Preparation
 
