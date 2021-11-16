@@ -15,7 +15,7 @@ from timesformer.datasets import loader
 from timesformer.models import build_model
 from sklearn.metrics import roc_curve, auc, precision_recall_curve, average_precision_score
 from sklearn.metrics.cluster import normalized_mutual_info_score
-from vast.opensetAlgos.extreme_value_machine import EVM_Training
+from vast.opensetAlgos.extreme_value_machine import ExtremeValueMachine
 logger = logging.get_logger(__name__)
 
 tail_base = 8000
@@ -107,13 +107,13 @@ def perform_test(model, train_loader, known_loader, unknown_loader, cfg):
             train_feats = {'feats': evm_feats, 'labels': evm_labels}
             torch.save(train_feats, output)
 
-    evm_unique_labels = torch.unique(evm_labels)
-    mevm = EVM_Training(tailsize=tail_base,
-                        cover_threshold=cover_thre,
-                        labels=evm_unique_labels,
-                        distance_function='cosine',
-                        distance_multiplier=dist_thre,
-                        device='cuda')
+    evm_unique_labels = np.array(range(number_of_known_classes))
+    mevm = ExtremeValueMachine(tail_size=tail_base,
+                               cover_threshold=cover_thre,
+                               labels=evm_unique_labels,
+                               distance_metric='cosine',
+                               distance_multiplier=dist_thre,
+                               device='cuda:0')
     mevm.fit(evm_feats, evm_labels)
     mevm.save('evm_models/timesformer_feats_evm.hdf5')
 
@@ -216,11 +216,16 @@ def perform_test(model, train_loader, known_loader, unknown_loader, cfg):
         with open("evm_models/timesformer_test_feats.bin", "wb") as output:
             test_feats = {'known':known_test_feats, 'unknown':unknown_test_feats}
             torch.save(test_feats, output)
+    known_prob = mevm.known_probs(known_feats.double())
+    unknown_prob = mevm.known_probs(unknown_feats.double())
+    known_max_prob, _ = torch.max(known_prob, dim=1)
+    known_max_prob = known_max_prob.detach().cpu().numpy()
+    unknown_max_prob, _ = torch.max(unknown_prob, dim=1)
+    unknown_max_prob = unknown_max_prob.detach().cpu().numpy()
 
-    mprob = mevm.known_probs(known_feats)
-    evm_known = [1 - np.mean(mprob[k:k+n_views]) for k in range(0, len(mprob), n_views)]
-    mprob = mevm.known_probs(unknown_feats)
-    evm_unknown = [1 - np.mean(mprob[k:k+n_views]) for k in range(0, len(mprob), n_views)]
+    evm_known = [1 - np.mean(known_max_prob[k:k+n_views]) for k in range(0, len(known_max_prob), n_views)]
+    evm_unknown = [1 - np.mean(unknown_max_prob[k:k+n_views]) for k in range(0, len(unknown_max_prob), n_views)]
+
     # Calculate scores
     auc_sc, ap_sc, f1_sc, nmi_sc, fpr, tpr, precision, recall = voc_eval(evm_known, evm_unknown)
     print('known score: {:.4f}/unknown score: {:.4f}'.format(np.mean(evm_known), np.mean(evm_unknown)))
