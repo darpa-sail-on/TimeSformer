@@ -1,0 +1,23 @@
+defaults:
+  - default
+  - protocol/use_features@protocol.smqtk.config: non_consolidated
+  - _self_
+
+test_root: ???
+model_root: ???
+protocol:
+  smqtk:
+    class: ONDProtocol
+    config:
+      domain: activity_recognition
+      test_ids:
+        - OND.10.90001.2100554
+      dataset_root: ???
+      feature_dir: ???
+      harness:
+        smqtk:
+          class: LocalHarness
+          config:
+            data_dir: ${test_root}/data
+            gt_dir: ${test_root}/data/activity_recognition
+            gt_config: ${test_root}/data/activity_recognition/activity_recognition.json
