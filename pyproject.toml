@@ -18,6 +18,9 @@ opencv-python = "^4.5.4.58"
 tensorboard = "^2.7.0"
 fvcore = "^0.1.5"
 av = "^8.0.3"
+vast = {git = "https://github.com/prijatelj/vast.git", rev = "upstream-main"}
+exputils = "^0.1.5"
+pkbar = "^0.5"
 
 [tool.poetry.dev-dependencies]
 
@@ -25,7 +28,7 @@ av = "^8.0.3"
 tensorboard_video_visualization = ["moviepy"]
 
 [build-system]
-requires = ["poetry-core>=1.0.0"]
+requires = ["poetry-core>=1.0.0", "torch>=1.8.1"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.plugins."smqtk_plugins"]

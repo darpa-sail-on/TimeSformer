@@ -26,6 +26,22 @@ optional = false
 python-versions = "*"
 
 [[package]]
+name = "bidict"
+version = "0.21.4"
+description = "The bidirectional mapping library for Python."
+category = "main"
+optional = false
+python-versions = ">=3.6"
+
+[[package]]
+name = "cached-property"
+version = "1.5.2"
+description = "A decorator for caching properties in classes."
+category = "main"
+optional = false
+python-versions = "*"
+
+[[package]]
 name = "cachetools"
 version = "4.2.4"
 description = "Extensible memoizing collections and decorators"
@@ -103,6 +119,24 @@ optional = false
 python-versions = "*"
 
 [[package]]
+name = "exputils"
+version = "0.1.5"
+description = "Convenient functions that are commonly used for running machine learning experiments."
+category = "main"
+optional = false
+python-versions = ">=3.7"
+
+[package.dependencies]
+bidict = "*"
+h5py = "*"
+numpy = "*"
+packaging = "*"
+pandas = "*"
+plotly = "*"
+scikit-learn = ">=0.23"
+sortedcollections = "*"
+
+[[package]]
 name = "fvcore"
 version = "0.1.5.post20211023"
 description = "Collection of common code shared among different research projects in FAIR computer vision team"
@@ -122,6 +156,14 @@ yacs = ">=0.1.6"
 
 [package.extras]
 all = ["shapely"]
+
+[[package]]
+name = "glob2"
+version = "0.7"
+description = "Version of the glob module that can capture patterns and supports recursive wildcards"
+category = "main"
+optional = false
+python-versions = "*"
 
 [[package]]
 name = "google-auth"
@@ -170,6 +212,22 @@ six = ">=1.5.2"
 
 [package.extras]
 protobuf = ["grpcio-tools (>=1.41.1)"]
+
+[[package]]
+name = "h5py"
+version = "3.5.0"
+description = "Read and write HDF5 files from Python"
+category = "main"
+optional = false
+python-versions = ">=3.7"
+
+[package.dependencies]
+cached-property = {version = "*", markers = "python_version < \"3.8\""}
+numpy = [
+    {version = ">=1.14.5", markers = "python_version == \"3.7\""},
+    {version = ">=1.17.5", markers = "python_version == \"3.8\""},
+    {version = ">=1.19.3", markers = "python_version >= \"3.9\""},
+]
 
 [[package]]
 name = "hydra-colorlog"
@@ -487,6 +545,17 @@ optional = false
 python-versions = ">=3.5"
 
 [[package]]
+name = "packaging"
+version = "21.0"
+description = "Core utilities for Python packages"
+category = "main"
+optional = false
+python-versions = ">=3.6"
+
+[package.dependencies]
+pyparsing = ">=2.0.2"
+
+[[package]]
 name = "pandas"
 version = "1.1.5"
 description = "Powerful data structures for data analysis, time series, and statistics"
@@ -521,6 +590,29 @@ description = "Python Imaging Library (Fork)"
 category = "main"
 optional = false
 python-versions = ">=3.6"
+
+[[package]]
+name = "pkbar"
+version = "0.5"
+description = "Keras Progress Bar for PyTorch"
+category = "main"
+optional = false
+python-versions = "*"
+
+[package.dependencies]
+numpy = "*"
+
+[[package]]
+name = "plotly"
+version = "5.4.0"
+description = "An open-source, interactive data visualization library for Python"
+category = "main"
+optional = false
+python-versions = ">=3.6"
+
+[package.dependencies]
+six = "*"
+tenacity = ">=6.2.0"
 
 [[package]]
 name = "portalocker"
@@ -782,6 +874,25 @@ docs = ["sphinx", "sphinx-rtd-theme", "sphinx-argparse", "sphinx-prompt", "liver
 test = ["coverage", "pytest", "pytest-cov"]
 
 [[package]]
+name = "sortedcollections"
+version = "2.1.0"
+description = "Python Sorted Collections"
+category = "main"
+optional = false
+python-versions = "*"
+
+[package.dependencies]
+sortedcontainers = "*"
+
+[[package]]
+name = "sortedcontainers"
+version = "2.4.0"
+description = "Sorted Containers -- Sorted List, Sorted Dict, Sorted Set"
+category = "main"
+optional = false
+python-versions = "*"
+
+[[package]]
 name = "tabulate"
 version = "0.8.9"
 description = "Pretty-print tabular data"
@@ -975,6 +1086,31 @@ secure = ["pyOpenSSL (>=0.14)", "cryptography (>=1.3.4)", "idna (>=2.0.0)", "cer
 socks = ["PySocks (>=1.5.6,!=1.5.7,<2.0)"]
 
 [[package]]
+name = "vast"
+version = "0.0.1"
+description = ""
+category = "main"
+optional = false
+python-versions = "*"
+develop = false
+
+[package.dependencies]
+glob2 = "*"
+h5py = "*"
+matplotlib = "*"
+numpy = "*"
+termcolor = "*"
+
+[package.extras]
+dev = ["pre-commit", "black", "flake8"]
+
+[package.source]
+type = "git"
+url = "https://github.com/prijatelj/vast.git"
+reference = "upstream-main"
+resolved_reference = "d740272e6f59e9292c9251d20ae926365882b4e2"
+
+[[package]]
 name = "werkzeug"
 version = "2.0.2"
 description = "The comprehensive WSGI web application library."
@@ -1014,7 +1150,7 @@ tensorboard_video_visualization = []
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.7,<3.11"
-content-hash = "4ca1d032d07700cefdd992ce72818c7920c731c1bf82e9b84de3fe283d43b2a6"
+content-hash = "5bd168fea0f82e7a919b6bb875a86fafadff103c501b61b03a1a8e9c12dc2407"
 
 [metadata.files]
 absl-py = [
@@ -1057,6 +1193,14 @@ av = [
     {file = "av-8.0.3-pp37-pypy37_pp73-win32.whl", hash = "sha256:1c34443f07f89355284ef64c6be82d3f029865d933dcba8cb791c56c82080986"},
     {file = "av-8.0.3.tar.gz", hash = "sha256:521814309c91d526b6b5c9517018aef2dd12bc3d86351037db69aa67730692b8"},
 ]
+bidict = [
+    {file = "bidict-0.21.4-py3-none-any.whl", hash = "sha256:3ac67daa353ecf853a1df9d3e924f005e729227a60a8dbada31a4c31aba7f654"},
+    {file = "bidict-0.21.4.tar.gz", hash = "sha256:42c84ffbe6f8de898af6073b4be9ea7ccedcd78d3474aa844c54e49d5a079f6f"},
+]
+cached-property = [
+    {file = "cached-property-1.5.2.tar.gz", hash = "sha256:9fa5755838eecbb2d234c3aa390bd80fbd3ac6b6869109bfc1b499f7bd89a130"},
+    {file = "cached_property-1.5.2-py2.py3-none-any.whl", hash = "sha256:df4f613cf7ad9a588cc381aaf4a512d26265ecebd5eb9e1ba12f1319eb85a6a0"},
+]
 cachetools = [
     {file = "cachetools-4.2.4-py3-none-any.whl", hash = "sha256:92971d3cb7d2a97efff7c7bb1657f21a8f5fb309a37530537c71b1774189f2d1"},
     {file = "cachetools-4.2.4.tar.gz", hash = "sha256:89ea6f1b638d5a73a4f9226be57ac5e4f399d22770b92355f92dcb0f7f001693"},
@@ -1089,8 +1233,15 @@ einops = [
     {file = "einops-0.3.2-py3-none-any.whl", hash = "sha256:285f3c75620897acb8b5580170c88121f010c77ce130bc7b9f220179009dafe0"},
     {file = "einops-0.3.2.tar.gz", hash = "sha256:5200e413539f0377f4177ef00dc019968f4177c49b1db3e836c7883df2a5fe2e"},
 ]
+exputils = [
+    {file = "exputils-0.1.5-py3-none-any.whl", hash = "sha256:ba18a073552dd584591df66b2dca3cd88bb96950bc8635b45803fe4972edbac0"},
+    {file = "exputils-0.1.5.tar.gz", hash = "sha256:eae9159b54a949f29053ce7c4353c4df22abe3040c02279157b2d8617606b742"},
+]
 fvcore = [
     {file = "fvcore-0.1.5.post20211023.tar.gz", hash = "sha256:20597a81a5678a3c7f53fa1773ef7fd108ce00ed9da1edd1a1b0092fb1a6d15b"},
+]
+glob2 = [
+    {file = "glob2-0.7.tar.gz", hash = "sha256:85c3dbd07c8aa26d63d7aacee34fa86e9a91a3873bc30bf62ec46e531f92ab8c"},
 ]
 google-auth = [
     {file = "google-auth-2.3.3.tar.gz", hash = "sha256:d83570a664c10b97a1dc6f8df87e5fdfff012f48f62be131e449c20dfc32630e"},
@@ -1145,6 +1296,18 @@ grpcio = [
     {file = "grpcio-1.41.1-cp39-cp39-win32.whl", hash = "sha256:2f2ee78a6ae88d668ceda56fa4a18d8a38b34c2f2e1332083dd1da1a92870703"},
     {file = "grpcio-1.41.1-cp39-cp39-win_amd64.whl", hash = "sha256:c3a446b6a1f8077cc03d0d496fc1cecdd3d0b66860c0c5b65cc92d0549117840"},
     {file = "grpcio-1.41.1.tar.gz", hash = "sha256:9b751271b029432a526a4970dc9b70d93eb6f0963b6a841b574f780b72651969"},
+]
+h5py = [
+    {file = "h5py-3.5.0-cp37-cp37m-macosx_10_9_x86_64.whl", hash = "sha256:3f9518c37a8b9cd067927a8cbc6fe96846d5d28c32e10baf49c8a1d012c9b0a6"},
+    {file = "h5py-3.5.0-cp37-cp37m-manylinux_2_12_x86_64.manylinux2010_x86_64.whl", hash = "sha256:c99329ebe346a73bd13bf3fc3d54ee9421f6ee00de6ea085c64a856a9acee7b3"},
+    {file = "h5py-3.5.0-cp37-cp37m-win_amd64.whl", hash = "sha256:fc763e707aa631fdc200878c7b5c13ea5b5d1f9772696871dcd6f0f5932fcd35"},
+    {file = "h5py-3.5.0-cp38-cp38-macosx_10_9_x86_64.whl", hash = "sha256:40fe8572511c317ec7598271b5dce9c25957cc373af733e53ea246bbf0244958"},
+    {file = "h5py-3.5.0-cp38-cp38-manylinux_2_12_x86_64.manylinux2010_x86_64.whl", hash = "sha256:d15e1556ff9591b3f3d8c7b3b66085f3867e5500528663bf11c499ab71c9c6b6"},
+    {file = "h5py-3.5.0-cp38-cp38-win_amd64.whl", hash = "sha256:834a53178fc558c9832081fd18bc22f6f2585edcc06c802adfa4afb07ff884b4"},
+    {file = "h5py-3.5.0-cp39-cp39-macosx_10_9_x86_64.whl", hash = "sha256:320f5810e058dcea73529dc98ae42263d34004bcc9209d7bf44eac5136716c3f"},
+    {file = "h5py-3.5.0-cp39-cp39-manylinux_2_12_x86_64.manylinux2010_x86_64.whl", hash = "sha256:f75d7bdaba8d3537490b0f53adcd043991ada3597f88e772969172c45145a8f6"},
+    {file = "h5py-3.5.0-cp39-cp39-win_amd64.whl", hash = "sha256:cdff848353e2d20d5f66535957595c79932851f51e496623a96186d02ba0cf30"},
+    {file = "h5py-3.5.0.tar.gz", hash = "sha256:77c7be4001ac7d3ed80477de5b6942501d782de1bbe4886597bdfec2a7ab821f"},
 ]
 hydra-colorlog = [
     {file = "hydra-colorlog-1.1.0.tar.gz", hash = "sha256:f575f90f2400d46b779b773b53a270df5371a9fff377b04f5665afc42e0c3f9d"},
@@ -1356,6 +1519,10 @@ opencv-python = [
 ordered-set = [
     {file = "ordered-set-4.0.2.tar.gz", hash = "sha256:ba93b2df055bca202116ec44b9bead3df33ea63a7d5827ff8e16738b97f33a95"},
 ]
+packaging = [
+    {file = "packaging-21.0-py3-none-any.whl", hash = "sha256:c86254f9220d55e31cc94d69bade760f0847da8000def4dfe1c6b872fd14ff14"},
+    {file = "packaging-21.0.tar.gz", hash = "sha256:7dc96269f53a4ccec5c0670940a4281106dd0bb343f47b7471f779df49c2fbe7"},
+]
 pandas = [
     {file = "pandas-1.1.5-cp36-cp36m-macosx_10_9_x86_64.whl", hash = "sha256:bf23a3b54d128b50f4f9d4675b3c1857a688cc6731a32f931837d72effb2698d"},
     {file = "pandas-1.1.5-cp36-cp36m-manylinux1_i686.whl", hash = "sha256:5a780260afc88268a9d3ac3511d8f494fdcf637eece62fb9eb656a63d53eb7ca"},
@@ -1428,6 +1595,14 @@ pillow = [
     {file = "Pillow-8.4.0-pp37-pypy37_pp73-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:84c471a734240653a0ec91dec0996696eea227eafe72a33bd06c92697728046b"},
     {file = "Pillow-8.4.0-pp37-pypy37_pp73-win_amd64.whl", hash = "sha256:244cf3b97802c34c41905d22810846802a3329ddcb93ccc432870243211c79fc"},
     {file = "Pillow-8.4.0.tar.gz", hash = "sha256:b8e2f83c56e141920c39464b852de3719dfbfb6e3c99a2d8da0edf4fb33176ed"},
+]
+pkbar = [
+    {file = "pkbar-0.5-py3-none-any.whl", hash = "sha256:23be653811ffc15f1eec596eaa03fe9e639fd2f8757e88f25627d5123b28f714"},
+    {file = "pkbar-0.5.tar.gz", hash = "sha256:3a6c389688cfa70c84433171ece71098c7f7181de3ba8375019de5713501ef15"},
+]
+plotly = [
+    {file = "plotly-5.4.0-py2.py3-none-any.whl", hash = "sha256:1e5c1a5c87caaf68ce0d9872d4636e3ce1f82c7f6988eb20905ff5b58e57525c"},
+    {file = "plotly-5.4.0.tar.gz", hash = "sha256:735d50738c760ecbf3a38e2336b8c1b119bff2d857096e4f68af31089b798161"},
 ]
 portalocker = [
     {file = "portalocker-2.3.2-py2.py3-none-any.whl", hash = "sha256:d8c9f7c542e768dbef006a3e49875046ca170d2d41ca712080719110bd066cc4"},
@@ -1671,7 +1846,6 @@ scikit-learn = [
     {file = "scikit_learn-1.0.1-cp39-cp39-win_amd64.whl", hash = "sha256:c604a813df8e7d6dfca3ae0db0a8fd7e5dff4ea9d94081ab263c81bf0b61ab4b"},
 ]
 scipy = [
-    {file = "scipy-1.7.2-1-cp310-cp310-win_amd64.whl", hash = "sha256:dc2d1bf41294e63c7302bf499973ac0c7f73c93c01763db43055f6525234bf11"},
     {file = "scipy-1.7.2-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:97eb573e361a73a553b915dc195c6f72a08249964b1a33f157f9659f3b6210d1"},
     {file = "scipy-1.7.2-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:359b60a0cccd17723b9d5e329a5212a710e771a3ddde800e472fb93732756c46"},
     {file = "scipy-1.7.2-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:82c5befebf54d799d77e5f0205c03030f57f69ba2541baa44d2e6ad138c28cd3"},
@@ -1755,6 +1929,14 @@ six = [
 smqtk-core = [
     {file = "smqtk_core-0.15.0.tar.gz", hash = "sha256:2a95873bbf2c9edf9fa10107a05d8ed7c436cfaa04305e97acbc35dd7e570316"},
 ]
+sortedcollections = [
+    {file = "sortedcollections-2.1.0-py3-none-any.whl", hash = "sha256:b07abbc73472cc459da9dd6e2607d73d1f3b9309a32dd9a57fa2c6fa882f4c6c"},
+    {file = "sortedcollections-2.1.0.tar.gz", hash = "sha256:d8e9609d6c580a16a1224a3dc8965789e03ebc4c3e5ffd05ada54a2fed5dcacd"},
+]
+sortedcontainers = [
+    {file = "sortedcontainers-2.4.0-py2.py3-none-any.whl", hash = "sha256:a163dcaede0f1c021485e957a39245190e74249897e2ae4b2aa38595db237ee0"},
+    {file = "sortedcontainers-2.4.0.tar.gz", hash = "sha256:25caa5a06cc30b6b83d11423433f65d1f9d76c4c6a0c90e3379eaa43b9bfdb88"},
+]
 tabulate = [
     {file = "tabulate-0.8.9-py3-none-any.whl", hash = "sha256:d7c013fe7abbc5e491394e10fa845f8f32fe54f8dc60c6622c6cf482d25d47e4"},
     {file = "tabulate-0.8.9.tar.gz", hash = "sha256:eb1d13f25760052e8931f2ef80aaf6045a6cceb47514db8beab24cded16f13a7"},
@@ -1828,6 +2010,7 @@ tqdm = [
 ]
 typing-extensions = [
     {file = "typing_extensions-4.0.0-py3-none-any.whl", hash = "sha256:829704698b22e13ec9eaf959122315eabb370b0884400e9818334d8b677023d9"},
+    {file = "typing_extensions-4.0.0.tar.gz", hash = "sha256:2cdf80e4e04866a9b3689a51869016d36db0814d84b8d8a568d22781d45d27ed"},
 ]
 ubelt = [
     {file = "ubelt-0.9.2-py2-none-any.whl", hash = "sha256:f6345908a378a41aed8e09a5ca8b2dc9d64d365b0ab1404a816f95e532746e02"},
@@ -1838,6 +2021,7 @@ urllib3 = [
     {file = "urllib3-1.26.7-py2.py3-none-any.whl", hash = "sha256:c4fdf4019605b6e5423637e01bc9fe4daef873709a7973e195ceba0a62bbc844"},
     {file = "urllib3-1.26.7.tar.gz", hash = "sha256:4987c65554f7a2dbf30c18fd48778ef124af6fab771a377103da0585e2336ece"},
 ]
+vast = []
 werkzeug = [
     {file = "Werkzeug-2.0.2-py3-none-any.whl", hash = "sha256:63d3dc1cf60e7b7e35e97fa9861f7397283b75d765afcaefd993d6046899de8f"},
     {file = "Werkzeug-2.0.2.tar.gz", hash = "sha256:aa2bb6fc8dee8d6c504c0ac1e7f5f7dc5810a9903e793b6f715a9f015bdadb9a"},
