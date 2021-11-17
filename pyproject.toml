@@ -18,7 +18,7 @@ opencv-python = "^4.5.4.58"
 tensorboard = "^2.7.0"
 fvcore = "^0.1.5"
 av = "^8.0.3"
-vast = {git = "https://github.com/prijatelj/vast.git", rev = "upstream-main"}
+vast = {git = "https://github.com/prijatelj/vast.git", rev = "main"}
 exputils = "^0.1.5"
 pkbar = "^0.5"
 
