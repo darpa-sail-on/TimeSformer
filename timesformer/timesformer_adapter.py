@@ -109,12 +109,13 @@ class TimesformerAdapter(ONDAgent):
         Returns:
             None
         """
-        raise NotImplementedError()
-        return self.detector.novelty_characterization(
-            toolset['dataset'],
-            toolset['dataset_root'],
-            toolset['round_id'],
-        )
+        pass
+        #raise NotImplementedError()
+        #return self.detector.novelty_characterization(
+        #    toolset['dataset'],
+        #    toolset['dataset_root'],
+        #    toolset['round_id'],
+        #)
 
     def novelty_adaptation(self, toolset: Dict) -> None:
         """
@@ -128,8 +129,6 @@ class TimesformerAdapter(ONDAgent):
         """
         raise NotImplementedError()
         return self.detector.novelty_adaptation(
-            toolset['dataset'],
-            toolset['dataset_root'],
             toolset['round_id'],
         )
 
