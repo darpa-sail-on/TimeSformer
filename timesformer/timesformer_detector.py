@@ -97,6 +97,8 @@ class TimesformerDetector:
             ),
         )
 
+        # TODO characterization requires an owhar per subtask.
+
         self.logger.info(f"{self.logging_header}: Initialization complete")
 
     @property
@@ -196,6 +198,14 @@ class TimesformerDetector:
 
         return result_path
 
+    def classification(self, owhar, feature_dict, logit_dict, round_id=None):
+        """Perform classification with the given owhar predictor."""
+        # TODO The subtasks that consist of characterization are all
+        # classification tasks. As was done for the HWR, make a
+        raise NotImplementedError(
+            'This is lowest priority as part of characterization.',
+        )
+
     def novelty_classification(self, feature_dict, logit_dict, round_id=None):
         logging_header = self._add_round_to_header(self.logging_header, round_id)
         self.logger.info(f"{logging_header}: Starting to classify samples")
@@ -252,6 +262,10 @@ class TimesformerDetector:
         Novelty adaptation
         :param round_id: round id in a test
         """
+
+        # TODO adaptation w/o class size update
+        # TODO adaptation w/ class size update (thus FINCH after deciding novel
+        # classes exist and enough samples for them)
 
         self.logger.info(f"Starting novelty_adaption: {round_id}")
 
