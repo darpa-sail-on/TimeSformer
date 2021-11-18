@@ -10,6 +10,8 @@ class TimesformerAdapter(ONDAgent):
                  fe_params,
                  kl_params,
                  evm_params,
+                 fine_tune_params,
+                 feedback_interpreter_params,
                  characterization_params,
                  dataloader_params,
                  detection_threshold) -> None:
@@ -23,7 +25,8 @@ class TimesformerAdapter(ONDAgent):
         self.kl_params = kl_params
         self.evm_params = evm_params
         self.dataloader_params = dataloader_params
-        self.characterization_params = characterization_params
+        self.fine_tune_params = fine_tune_params,
+        self.feedback_interpreter_params = feedback_interpreter_params,
         self.detection_threshold = detection_threshold
         ONDAgent.__init__(self)
         self.step_dict = {"Initialize": self.initialize,
@@ -49,7 +52,8 @@ class TimesformerAdapter(ONDAgent):
                                             self.fe_params,
                                             self.kl_params,
                                             self.evm_params,
-                                            self.characterization_params,
+                                            self.fine_tune_params,
+                                            self.feedback_interpreter_params,
                                             self.dataloader_params,
                                             self.detection_threshold)
 
