@@ -21,11 +21,19 @@ from arn.models.owhar import OWHAPredictorEVM
 
 
 class TimesformerDetector:
-    def __init__(self, session_id, test_id, test_type,
-                 feature_extractor_params, kl_params, evm_params,
-                 fine_tune_params, feedback_interpreter_params,
-                 dataloader_params,
-                 detection_threshold):
+    def __init__(
+        self,
+        session_id,
+        test_id,
+        test_type,
+        feature_extractor_params,
+        kl_params,
+        evm_params,
+        fine_tune_params,
+        feedback_interpreter_params,
+        dataloader_params,
+        detection_threshold,
+    ):
         """
         Constructor for the activity recognition models
 
@@ -69,6 +77,20 @@ class TimesformerDetector:
         self.number_workers = dataloader_params["n_threads"]
         self.pin_memory = dataloader_params["pin_memory"]
 
+        if feedback_interpreter_param:
+            self.interpret_activity_feedback = True
+            interpreter= CLIPFeedbackInterpreter(
+                feedback_interpreter_params['clip_path'],
+                feedback_interpreter_params['clip_templates'],
+                feedback_interpreter_params['pred_known_map'],
+                feedback_interpreter_params['pred_label_encs'],
+                feedback_interpreter_params['feedback_known_map'],
+                feedback_interpreter_params['feedback_label_encs'],
+            )
+        else:
+            interpreter=None
+            self.interpret_activity_feedback = False
+
         # OWHAR: FineTune, EVM, FINCH, CLIP Feedback Interpreter args
         self.owhar = WindowedMeanKLDiv(
             FineTune.load(
@@ -87,14 +109,7 @@ class TimesformerDetector:
                 window_size=kl_params["window_size"],
                 num_rounds=kl_params["num_rounds"],
             ),
-            CLIPFeedbackInterpreter(
-                feedback_interpreter_params['clip_path'],
-                feedback_interpreter_params['clip_templates'],
-                feedback_interpreter_params['pred_known_map'],
-                feedback_interpreter_params['pred_label_encs'],
-                feedback_interpreter_params['feedback_known_map'],
-                feedback_interpreter_params['feedback_label_encs'],
-            ),
+            interpreter,
         )
 
         # TODO characterization requires an owhar per subtask.
@@ -112,6 +127,9 @@ class TimesformerDetector:
     @property
     def detection_threshold(self):
         return self.owhar.novelty_detector.detection_threshold
+
+    def set_detection_threshold(self value):
+        return self.owhar.novelty_detector.detection_threshold = value
 
     @torch.no_grad()
     def feature_extraction(self, dataset_path, dataset_root, round_id=None):
@@ -257,68 +275,134 @@ class TimesformerDetector:
             logger_header += " Round id: {}".format(round_id)
         return logger_header
 
-    def novelty_adaption(self, round_id):
+    def binary_novelty_feedback_adapt(
+        self,
+        max_probabilities,
+        detection_threshold,
+        feedback_df=None
+    ):
+        """Performs older version of binary novelty feedback adaptation.
+
+        Returns
+        -------
+        float | float, pandas.DataFrame
+            The new detection threshold is returned. The feedback data_frame is
+            returned when feedback_df is not given as an argument.
         """
-        Novelty adaptation
-        :param round_id: round id in a test
-        """
-
-        # TODO adaptation w/o class size update
-        # TODO adaptation w/ class size update (thus FINCH after deciding novel
-        # classes exist and enough samples for them)
-
-        self.logger.info(f"Starting novelty_adaption: {round_id}")
-
-        num_pred_known = 0
-        num_pred_unknown = 0
-
-        m = 1 - torch.mean(self.max_probabilities, axis=1)
+        # TODO Make your variable names more descriptive.
+        m = 1 - torch.mean(max_probabilities, axis=1)
         m = m.detach().cpu().numpy()
-        if not self.has_world_changed:
-            return
 
-        num_pred_known = len(m[m <= self.detection_threshold])
-        num_pred_unknown = len(m[m > self.detection_threshold])
+        num_pred_known = len(m[m <= detection_threshold])
+        num_pred_unknown = len(m[m > detection_threshold])
 
         pred_known = np.zeros(shape=(num_pred_known, 2), dtype=np.float64)
         pred_unknown = np.zeros(shape=(num_pred_unknown, 2), dtype=np.float64)
-        known_idx = np.argwhere(m <= self.detection_threshold).squeeze()
-        unknown_idx = np.argwhere(m > self.detection_threshold).squeeze()
-        known_preds = m[m <= self.detection_threshold]
-        unknown_preds = m[m > self.detection_threshold]
+        known_idx = np.argwhere(m <= detection_threshold).squeeze()
+        unknown_idx = np.argwhere(m > detection_threshold).squeeze()
+
+        known_preds = m[m <= detection_threshold]
+        unknown_preds = m[m > detection_threshold]
+
         pred_known[:, 0] = known_idx
         pred_known[:, 1] = known_preds
         pred_unknown[:, 0] = unknown_idx
         pred_unknown[:, 1] = unknown_preds
+
         pred_known_sorted = pred_known[pred_known[:, 1].argsort()[::-1]]
         pred_unknown_sorted = pred_unknown[pred_unknown[:, 1].argsort()]
 
+        # Get Feedback from batch predictions of novel (unknown) samples
         income_per_batch = self.feedback_obj.income_per_batch
         half_income_per_batch = int(income_per_batch/2)
         unknown_image = pred_unknown_sorted[:half_income_per_batch, 0]
         known_image = pred_known_sorted[:half_income_per_batch, 0]
         image_list = np.concatenate([known_image, unknown_image]).tolist()
 
+        if feedback_df is None:
+            data_frame = self.feedback_obj.get_feedback(
+                round_id,
+                image_list,
+                self.image_names,
+            )
+        else:
+            data_frame = feedback_df
 
-        data_frame = self.feedback_obj.get_feedback(round_id, image_list,
-                                                    self.image_names)
+        # Get known and unknown labels
         known_labels = data_frame["labels"][:len(known_image)].to_numpy()
         unknown_labels = data_frame["labels"][len(known_image):].to_numpy()
+
+        # Record known and unknown prediction performance
         known_pred_wrong = len(known_labels[known_labels == 88])
         unknown_pred_wrong = len(unknown_labels[unknown_labels != 88])
+
         self.logger.info(f"Known pred wrong: {known_pred_wrong}")
         self.logger.info(f"Unknown pred wrong: {unknown_pred_wrong}")
 
         unknown_acc = unknown_pred_wrong/half_income_per_batch
         known_acc = known_pred_wrong/half_income_per_batch
 
-        if self.feedback_weight*unknown_acc > 0.0:
-            self.detection_threshold -= self.feedback_weight*unknown_acc
-        if self.feedback_weight*known_acc > 0.0:
-            self.detection_threshold += self.feedback_weight*known_acc
+        if self.feedback_weight * unknown_acc > 0.0:
+            detection_threshold -= self.feedback_weight*unknown_acc
+        if self.feedback_weight * known_acc > 0.0:
+            detection_threshold += self.feedback_weight*known_acc
 
-        self.logger.info(f"New detection threshold is {self.detection_threshold}")
-        self.detection_threshold = np.clip(self.detection_threshold, 0.0, 1.0)
+        self.logger.info(f"New detection threshold is {detection_threshold}")
+        if feedback_df is None:
+            return np.clip(detection_threshold, 0.0, 1.0), data_frame
+        return np.clip(detection_threshold, 0.0, 1.0)
+
+    def novelty_adaption(self, round_id):
+        """
+        Novelty adaptation
+        :param round_id: round id in a test
+        """
+        self.logger.info(f"Starting novelty_adaption: {round_id}")
+        if not self.has_world_changed:
+            return
+
+        # Adaptation w/o class size update:
+        # Update the detection threshold and get feedback
+        detect_thresh, feedback_df = self.binary_novelty_feedback_adapt(
+            self.max_probabilities,
+            self.detection_threshold,
+            feedback_df,
+        )
+
+        # TODO Check if should use feedback from classes.
+        if self.interpret_activity_feedback:
+            # TODO Interpret the feedback
+            feedback_labels = self.owhar.feedback_interpreter.interpret(
+                label_text,
+            )
+
+            # TODO Combine the train data with the feedback data for update
+
+            # TODO Incremental fits on all prior train and saved feedback
+            self.owhar.fit_increment(
+                input_samples,
+                labels,
+                is_feature_repr=True,
+                #val_input_samples,
+                #val_labels,
+                #val_is_feature_repr=True,
+            )
+
+        # TODO Handle the saving of results etc...
+        self.probabilities
+        self.max_probabilities
+
+        # Adaptation given only novelty information after updating the fine
+        # tune and the EVM.
+        self.set_detection_threshold(self.binary_novelty_feedback_adapt(
+            self.max_probabilities,
+            self.detection_threshold,
+            feedback_df,
+        ))
+
+        # TODO adaptation w/ class size update (thus FINCH after deciding novel
+        # classes exist and enough samples for them). This won't happen until
+        # later difficulties of the DARPA eval.
 
     def novelty_characterization(self, dataset_id_list, round_id=None):
         logging_header = self._add_round_to_header(self.logging_header, round_id)
