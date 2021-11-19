@@ -1,6 +1,7 @@
 defaults:
   - default
   - protocol/use_features@protocol.smqtk.config: non_consolidated
+  - protocol/eval@protocol.smqtk.config: without_reaction
   - _self_
 
 test_root: ???
