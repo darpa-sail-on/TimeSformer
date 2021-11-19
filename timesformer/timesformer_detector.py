@@ -208,12 +208,12 @@ class TimesformerDetector:
         # TODO may have to add owhar arg to find kl thresholds of sub tasks
         p_train = []
         for i in tqdm(range(0, ond_train.shape[0], evm_batch_size)):
-            t1 = self.owhar.evm.known_probs(ond_train[i:i+evm_batch_size].double())
+            t1 = self.owhar.known_probs(ond_train[i:i+evm_batch_size].double())
             p_train.append(t1)
         p_train = torch.cat(p_train).detach().cpu().numpy()
 
-        p_val = self.owhar.evm.known_probs(ond_val.double())
-        p_unknown = self.owhar.evm.known_probs(ond_unknown.double())
+        p_val = self.owhar.known_probs(ond_val.double())
+        p_unknown = self.owhar.known_probs(ond_unknown.double())
         p_val = p_val.detach().cpu().numpy()
         p_unknown = p_unknown.detach().cpu().numpy()
 
@@ -241,7 +241,7 @@ class TimesformerDetector:
                 sigma=sigma_p_batch,
                 m=1.0,
                 s=np.sqrt(np.mean((
-                    self.owhar.evm.known_probs()
+                    self.owhar.known_probs()
                     - 1.0
                 )**2)),
             )
@@ -341,6 +341,7 @@ class TimesformerDetector:
                         map(lambda x: torch.Tensor(x).double(), FVs))
         self.class_probabilities = torch.stack(list(class_map), axis=0)
         self.max_probabilities = torch.max(self.class_probabilities, axis=2)[0]
+        self.round_FVs = FVs
 
         if round_id == 0:
             detections = torch.zeros(len(image_names))
@@ -383,9 +384,10 @@ class TimesformerDetector:
         # TODO if world_detection not run first, have to run probs throu
 
         if not hasattr(self, "class_probabilities"):
-            class_map = map(self.class_probabilities, FVs)
+            class_map = map(self.owhar.known_probs, FVs)
             self.class_probabilities = torch.stack(list(class_map), axis=0)
             self.max_probabilities, _ = torch.max(self.class_probabilities, axis=2)
+            self.round_FVs = FVs
 
         m = 1 - torch.mean(self.max_probabilities, axis=1)
         known_probs = torch.mean(torch.tensor(self.class_probabilities), axis=1)
@@ -531,11 +533,16 @@ class TimesformerDetector:
             )
 
             # TODO Combine the train data with the feedback data for update
+            self.train_features = torch.cat([
+                self.train_features,
+                self.round_FVs,
+            ])
+            self.train_labels = torch.cat([self.train_labels, feedback_labels])
 
             # Incremental fits on all prior train and saved feedback
             self.owhar.fit_increment(
-                input_samples,
-                labels,
+                self.train_labels,
+                self.train_labels,
                 is_feature_repr=True,
                 #val_input_samples,
                 #val_labels,
@@ -543,8 +550,9 @@ class TimesformerDetector:
             )
 
         # TODO Handle the saving of results with updated predictor etc...
-        self.probabilities
-        self.max_probabilities
+        class_map = map(self.owhar.known_probs, self.round_FVs)
+        self.class_probabilities = torch.stack(list(class_map), axis=0)
+        self.max_probabilities, _ = torch.max(self.class_probabilities, axis=2)
 
         # Adaptation given only novelty information after updating the fine
         # tune and the EVM.
@@ -559,6 +567,9 @@ class TimesformerDetector:
         # classes exist and enough samples for them). This won't happen until
         # later difficulties of the DARPA eval.
 
+    def novelty_characterization(self, dataset_id_list, round_id=None):
+        raise NotImplementedError('TODO Novelty Characterization')
+    """
     def novelty_characterization(self, dataset_id_list, round_id=None):
         logging_header = self._add_round_to_header(self.logging_header, round_id)
         self.logger.info(f"{logging_header}: Starting to characterize samples")
@@ -607,3 +618,4 @@ class TimesformerDetector:
         df.to_csv(result_path, index = False, header = False, float_format='%.4f')
         self.logger.info(f"{logging_header}: Finished characterizing samples")
         return result_path
+    """
