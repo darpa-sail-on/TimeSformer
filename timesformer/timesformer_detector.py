@@ -13,7 +13,7 @@ from timesformer.models import build_model
 from timesformer.datasets.ta2 import TimesformerEval
 from timesformer.config.defaults import get_cfg
 
-from arn.models.fine_tune import FineTune
+from arn.models.fine_tune import FineTune, FineTuneFCANN
 from arn.models.novelty_detector import WindowedMeanKLDiv
 #from arn.models.novelty_recognizer import FINCHRecognizer
 from arn.models.feedback import CLIPFeedbackInterpreter
@@ -79,7 +79,7 @@ class TimesformerDetector:
 
         if feedback_interpreter_param:
             self.interpret_activity_feedback = True
-            interpreter= CLIPFeedbackInterpreter(
+            interpreter = CLIPFeedbackInterpreter(
                 feedback_interpreter_params['clip_path'],
                 feedback_interpreter_params['clip_templates'],
                 feedback_interpreter_params['pred_known_map'],
@@ -91,10 +91,37 @@ class TimesformerDetector:
             interpreter=None
             self.interpret_activity_feedback = False
 
+        self.feedback_columns = [
+            'kinetics_id_1',
+            'kinetics_id_2',
+            'kinetics_id_3',
+            'kinetics_id_4',
+            'kinetics_id_5',
+        ]
+
+        # Must store the train features and labels for updating fine tuning.
+        self.train_features = torch.load(
+            feedback_interpreter_params['train_feature_path'],
+        )
+        self.train_labels = torch.nn.functional.one_hot(
+            torch.cat(self.train_features['labels']).type(torch.long)
+        )
+        self.train_features = torch.cat(self.train_features['feats'])
+
+        # TODO Store the val features and labels for updating fine tuning.
+        #self.val_features = torch.load(
+        #    feedback_interpreter_params['val_feature_path'],
+        #)
+        #self.val_labels = torch.nn.functional.one_hot(
+        #    torch.cat(self.val_features['labels']).type(torch.long)
+        #)
+        #self.val_features = torch.cat(self.val_features['feats'])
+
         # OWHAR: FineTune, EVM, FINCH, CLIP Feedback Interpreter args
-        self.owhar = WindowedMeanKLDiv(
+        self.owhar = OWHAPredictorEVM(
             FineTune.load(
-                fine_tune_params["model_path"],
+                torch.load(fine_tune_params["model_path"]),
+                device=torch.device('cuda'),
             ),
             ExtremeValueMachine.load(
                 evm_params["model_path"],
@@ -111,6 +138,18 @@ class TimesformerDetector:
             ),
             interpreter,
         )
+
+        # Fit the OWHAR model on the given data.
+        self.owhar.fit_increment(
+            self.train_features,
+            self.train_labels,
+            True,
+            #self.val_features,
+            #self.val_labels,
+            #True,
+        )
+
+        # TODO Obtain detection threshold and kl threshold if None provided
 
         # TODO characterization requires an owhar per subtask.
 
@@ -366,19 +405,21 @@ class TimesformerDetector:
         detect_thresh, feedback_df = self.binary_novelty_feedback_adapt(
             self.max_probabilities,
             self.detection_threshold,
-            feedback_df,
         )
 
-        # TODO Check if should use feedback from classes.
+        # Check if should use feedback from classes.
         if self.interpret_activity_feedback:
-            # TODO Interpret the feedback
+            # Get the feedback as label text
+            label_text = feedback_df[self.feedback_columns].values
+
+            # Interpret the feedback
             feedback_labels = self.owhar.feedback_interpreter.interpret(
                 label_text,
             )
 
             # TODO Combine the train data with the feedback data for update
 
-            # TODO Incremental fits on all prior train and saved feedback
+            # Incremental fits on all prior train and saved feedback
             self.owhar.fit_increment(
                 input_samples,
                 labels,
@@ -388,7 +429,7 @@ class TimesformerDetector:
                 #val_is_feature_repr=True,
             )
 
-        # TODO Handle the saving of results etc...
+        # TODO Handle the saving of results with updated predictor etc...
         self.probabilities
         self.max_probabilities
 
