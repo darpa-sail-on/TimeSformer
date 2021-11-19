@@ -14,7 +14,7 @@ from timesformer.datasets.ta2 import TimesformerEval
 from timesformer.config.defaults import get_cfg
 from timesformer.utils.realign_logits import realign_logits
 
-from arn.models.fine_tune import FineTune
+from arn.models.fine_tune import FineTune, FineTuneFCANN
 from arn.models.novelty_detector import WindowedMeanKLDiv
 #from arn.models.novelty_recognizer import FINCHRecognizer
 from arn.models.feedback import CLIPFeedbackInterpreter
@@ -351,19 +351,21 @@ class TimesformerDetector:
         detect_thresh, feedback_df = self.binary_novelty_feedback_adapt(
             self.max_probabilities,
             self.detection_threshold,
-            feedback_df,
         )
 
-        # TODO Check if should use feedback from classes.
+        # Check if should use feedback from classes.
         if self.interpret_activity_feedback:
-            # TODO Interpret the feedback
+            # Get the feedback as label text
+            label_text = feedback_df[self.feedback_columns].values
+
+            # Interpret the feedback
             feedback_labels = self.owhar.feedback_interpreter.interpret(
                 label_text,
             )
 
             # TODO Combine the train data with the feedback data for update
 
-            # TODO Incremental fits on all prior train and saved feedback
+            # Incremental fits on all prior train and saved feedback
             self.owhar.fit_increment(
                 input_samples,
                 labels,
@@ -373,7 +375,7 @@ class TimesformerDetector:
                 #val_is_feature_repr=True,
             )
 
-        # TODO Handle the saving of results etc...
+        # TODO Handle the saving of results with updated predictor etc...
         self.probabilities
         self.max_probabilities
 
