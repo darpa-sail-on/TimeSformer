@@ -89,6 +89,32 @@ their [paper](https://arxiv.org/pdf/2102.05095.pdf).
                                      protocol.smqtk.config.test_ids=[<comma seperated list of test ids>]
    ```
 
+### System Detection
+1. Download the features from [google drive]()
+
+2. With the evaluation server use the following command
+   ```
+     HYDRA_FULL_ERROR=1 sail-on-client --config-dir configs/ \
+                                       --config-name system_detection_par \
+                                       server_url=<url for server> \
+                                       model_root=<root directory where models are stored> \
+                                       protocol.smqtk.config.feature_dir=<root directory where features are stored> \
+                                       protocol.smqtk.config.dataset_root=<root directory of vidoes> \
+                                       algorithms@protocol.smqtk.config.algorithms=[timesformer_base] \
+                                       protocol.smqtk.config.test_ids=[<comma seperated test ids>]
+   ```
+
+3. With files on the machine using the following command
+   ```
+     HYDRA_FULL_ERROR=1 sail-on-client --config-dir configs/ \
+                                       --config-name system_detection_local \
+                                       test_root=<root directory with tests> \
+                                       protocol.smqtk.config.feature_dir=<root directory with features> \
+                                       protocol.smqtk.config.dataset_root=<root directory with videos> \
+                                       algorithms@protocol.smqtk.config.algorithms=[timesformer_base]
+                                       protocol.smqtk.config.test_ids=[<comma seperate test ids>]
+   ```
+
 # Training Network
 
 ## Dataset Preparation
