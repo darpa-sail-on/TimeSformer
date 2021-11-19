@@ -96,11 +96,11 @@ class TimesformerDetector:
             self.interpret_activity_feedback = False
 
         self.feedback_columns = [
-            'kinetics_id_1',
-            'kinetics_id_2',
-            'kinetics_id_3',
-            'kinetics_id_4',
-            'kinetics_id_5',
+            "class1",
+            "class2",
+            "class3",
+            "class4",
+            "class5",
         ]
 
         # Must store the train features and labels for updating fine tuning.
@@ -341,7 +341,8 @@ class TimesformerDetector:
                         map(lambda x: torch.Tensor(x).double(), FVs))
         self.class_probabilities = torch.stack(list(class_map), axis=0)
         self.max_probabilities = torch.max(self.class_probabilities, axis=2)[0]
-        self.round_FVs = FVs
+
+        self.round_feature_dict = feature_dict
 
         if round_id == 0:
             detections = torch.zeros(len(image_names))
@@ -387,7 +388,7 @@ class TimesformerDetector:
             class_map = map(self.owhar.known_probs, FVs)
             self.class_probabilities = torch.stack(list(class_map), axis=0)
             self.max_probabilities, _ = torch.max(self.class_probabilities, axis=2)
-            self.round_FVs = FVs
+            self.round_feature_dict = feature_dict
 
         m = 1 - torch.mean(self.max_probabilities, axis=1)
         known_probs = torch.mean(torch.tensor(self.class_probabilities), axis=1)
@@ -516,26 +517,25 @@ class TimesformerDetector:
 
         # Adaptation w/o class size update:
         # Update the detection threshold and get feedback
-        detect_thresh, feedback_df = self.binary_novelty_feedback_adapt(
+        feedback_df = self.binary_novelty_feedback_adapt(
             self.max_probabilities,
             self.detection_threshold,
             round_id,
-        )
+        )[1]
 
         # Check if should use feedback from classes.
         if self.interpret_activity_feedback:
-            # Get the feedback as label text
-            label_text = feedback_df[self.feedback_columns].values
-
-            # Interpret the feedback
+            # Get the feedback as label text and interpret the feedback
             feedback_labels = self.owhar.feedback_interpreter.interpret(
-                label_text,
+                feedback_df[self.feedback_columns].values,
             )
 
-            # TODO Combine the train data with the feedback data for update
+            features_arr = np.array(list(self.round_feature_dict.values()))
+
+            # Combine the train data with the feedback data for update
             self.train_features = torch.cat([
                 self.train_features,
-                self.round_FVs,
+                features_arr[feedback_df['id'].values],
             ])
             self.train_labels = torch.cat([self.train_labels, feedback_labels])
 
@@ -549,8 +549,8 @@ class TimesformerDetector:
                 #val_is_feature_repr=True,
             )
 
-        # TODO Handle the saving of results with updated predictor etc...
-        class_map = map(self.owhar.known_probs, self.round_FVs)
+        # Handle the saving of results with updated predictor etc...
+        class_map = map(self.owhar.known_probs, self.round_feature_dict.values())
         self.class_probabilities = torch.stack(list(class_map), axis=0)
         self.max_probabilities, _ = torch.max(self.class_probabilities, axis=2)
 
