@@ -1,0 +1,21 @@
+defaults:
+  - default
+  - protocol/use_features@protocol.smqtk.config: consolidated
+  - _self_
+
+server_url: ???
+model_root: ???
+protocol:
+  smqtk:
+    class: ONDProtocol
+    config:
+      domain: activity_recognition
+      test_ids:
+        - OND.10.90001.2100554
+      dataset_root: ???
+      feature_dir: ???
+      harness:
+        smqtk:
+          class: LocalHarness
+          config:
+            url: ${server_url}
