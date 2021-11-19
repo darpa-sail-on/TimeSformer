@@ -1,24 +1,29 @@
 import copy
 import logging
-import numpy as np
 import os
+from multiprocessing import Pool
+
+import numpy as np
 import pandas as pd
 import torch
-
+from tqdm import tqdm
 from fvcore.common.config import CfgNode
-from vast.opensetAlgos.extreme_value_machine import ExtremeValueMachine
 
 import timesformer.utils.checkpoint as cu
-from timesformer.models import build_model
-from timesformer.datasets.ta2 import TimesformerEval
 from timesformer.config.defaults import get_cfg
+<<<<<<< HEAD
 from timesformer.utils.realign_logits import realign_logits
+=======
+from timesformer.datasets.ta2 import TimesformerEval
+from timesformer.models import build_model
+>>>>>>> b1533e2... copied over find_kl_threshold code from kitware, copied feedback obj code.
 
-from arn.models.fine_tune import FineTune, FineTuneFCANN
-from arn.models.novelty_detector import WindowedMeanKLDiv
 #from arn.models.novelty_recognizer import FINCHRecognizer
 from arn.models.feedback import CLIPFeedbackInterpreter
+from arn.models.fine_tune import FineTune, FineTuneFCANN
+from arn.models.novelty_detector import WindowedMeanKLDiv
 from arn.models.owhar import OWHAPredictorEVM
+from vast.opensetAlgos.extreme_value_machine import ExtremeValueMachine
 
 
 class TimesformerDetector:
@@ -34,6 +39,7 @@ class TimesformerDetector:
         feedback_interpreter_params,
         dataloader_params,
         detection_threshold,
+        feedback_obj,
     ):
         """
         Constructor for the activity recognition models
@@ -46,6 +52,7 @@ class TimesformerDetector:
         :param evm_params (dict): Parameter for evm
         :param dataloader_params (dict): Parameters for dataloader
         :param detection_threshold (float): The threshold for binary detection
+        :param feedback_obj: An instance used for requesting feedback
         """
         self.logger = logging.getLogger(__name__)
         self.session_id = session_id
@@ -79,6 +86,7 @@ class TimesformerDetector:
         self.number_workers = dataloader_params["n_threads"]
         self.pin_memory = dataloader_params["pin_memory"]
 
+<<<<<<< HEAD
         # Add KL parameters
         self.kl_threshold = kl_params["KL_threshold"] * kl_params["threshold_scale"]
         kl_decay_rate = kl_params["decay_rate"]
@@ -97,7 +105,192 @@ class TimesformerDetector:
                                             device=torch.device("cuda:0"))
         torch.manual_seed(0)
         np.random.seed(0)
+=======
+        if feedback_interpreter_params:
+            self.interpret_activity_feedback = True
+            interpreter = CLIPFeedbackInterpreter(
+                feedback_interpreter_params['clip_path'],
+                feedback_interpreter_params['clip_templates'],
+                feedback_interpreter_params['pred_known_map'],
+                feedback_interpreter_params['pred_label_encs'],
+                feedback_interpreter_params['feedback_known_map'],
+                feedback_interpreter_params['feedback_label_encs'],
+            )
+        else:
+            interpreter=None
+            self.interpret_activity_feedback = False
+
+        self.feedback_columns = [
+            'kinetics_id_1',
+            'kinetics_id_2',
+            'kinetics_id_3',
+            'kinetics_id_4',
+            'kinetics_id_5',
+        ]
+
+        # Must store the train features and labels for updating fine tuning.
+        self.train_features = torch.load(
+            feedback_interpreter_params['train_feature_path'],
+        )
+        self.train_labels = torch.nn.functional.one_hot(
+            torch.cat(self.train_features['labels']).type(torch.long)
+        )
+        self.train_features = torch.cat(self.train_features['feats'])
+
+        # TODO Store the val features and labels for updating fine tuning.
+        #   Currently only used to assess the val performance of model.
+        #self.val_features = torch.load(
+        #    feedback_interpreter_params['val_feature_path'],
+        #)
+        #self.val_labels = torch.nn.functional.one_hot(
+        #    torch.cat(self.val_features['labels']).type(torch.long)
+        #)
+        #self.val_features = torch.cat(self.val_features['feats'])
+
+        # OWHAR: FineTune, EVM, FINCH, CLIP Feedback Interpreter args
+        self.owhar = OWHAPredictorEVM(
+            FineTune.load(
+                torch.load(fine_tune_params["model_path"]),
+                device=torch.device('cuda'),
+            ),
+            ExtremeValueMachine.load(
+                evm_params["model_path"],
+                device=torch.device("cuda:0"),
+            ),
+            WindowedMeanKLDiv(
+                detection_threshold=detection_threshold,
+                kl_threshold=kl_params["KL_threshold"],
+                kl_threshold_decay_rate=kl_params["decay_rate"],
+                mean_train=kl_params["mu_train"],
+                std_dev_train=kl_params["sigma_train"],
+                window_size=kl_params["window_size"],
+                num_rounds=kl_params["num_rounds"],
+            ),
+            interpreter,
+        )
+
+        # Fit the OWHAR model on the given data.
+        self.owhar.fit_increment(
+            self.train_features,
+            self.train_labels,
+            True,
+            #self.val_features,
+            #self.val_labels,
+            #True,
+        )
+
+        # Obtain detection threshold and kl threshold if None provided
+        if feedback_interpreter_params['thresh_set_data']:
+            if self.owhar.novelty_detector.kl_threshold is not None:
+                logging.warning(
+                    'kl_threshold was already set, but finding from data',
+                )
+
+            test_features = torch.load(
+                feedback_interpreter_params['thresh_set_data'],
+            )
+
+            # NOTE self.detection_threshold is NOT informed from val, atm
+            self.owhar.novelty_detector.kl_threshold = self.find_kl_threshold(
+                self.train_features,
+                test_features['known'],
+                test_features['unknown'],
+            )
+
+        # TODO characterization requires an owhar per subtask.
+        self.feedback_obj = feedback_obj
+        if self.feedback_obj:
+            self.feedback_weight = kl_params['feedback_weight']
+
+>>>>>>> b1533e2... copied over find_kl_threshold code from kitware, copied feedback obj code.
         self.logger.info(f"{self.logging_header}: Initialization complete")
+
+    def find_kl_threshold(
+        self,
+        ond_train,
+        ond_val,
+        ond_unknown,
+        evm_batch_size=10000,
+        batch_size=100,
+        TA1_test_size=1024,
+        number_of_evaluation=1,
+        n_cpu=4,
+        max_percentage_of_early=5.0,
+    ):
+        """Copy pasted from kl_finder.py in Kitware's code to preserve
+        functionality and meet deadlines.
+
+        Args
+        ----
+        ond_val : torch.Tensor
+            The known feature representations as given by ground truth
+        ond_unknown : torch.Tensor
+            The unknown feature representations as given by ground truth
+        """
+        ond_train = ond_train[~torch.any(ond_train.isnan(), dim=1)]
+        ond_val = ond_val[~torch.any(ond_val.isnan(), dim=1)]
+        ond_unknown = ond_unknown[~torch.any(ond_unknown.isnan(), dim=1)]
+
+        # TODO may have to add owhar arg to find kl thresholds of sub tasks
+        p_train = []
+        for i in tqdm(range(0, ond_train.shape[0], evm_batch_size)):
+            t1 = self.owhar.evm.known_probs(ond_train[i:i+evm_batch_size].double())
+            p_train.append(t1)
+        p_train = torch.cat(p_train).detach().cpu().numpy()
+
+        p_val = self.owhar.evm.known_probs(ond_val.double())
+        p_unknown = self.owhar.evm.known_probs(ond_unknown.double())
+        p_val = p_val.detach().cpu().numpy()
+        p_unknown = p_unknown.detach().cpu().numpy()
+
+        def KL_Gaussian(mu, sigma, m, s):
+          kl = np.log(s/sigma) + ( ( (sigma**2) + ( (mu-m) **2) ) / ( 2 * (s**2) ) ) - 0.5
+          return kl
+
+        mu_p_val = np.mean(p_val)
+        sigma_p_val = np.std(p_val)
+        mu_p_unknown = np.mean(p_unknown)
+        sigma_p_unknown = np.std(p_unknown)
+
+        logging.info("\nstart finding kl threshold")
+
+        n_val = p_val.shape[0]
+
+        def task(n):
+            rng = np.random.default_rng(n)
+            ind = rng.choice(n_val, size=batch_size, replace=False)
+            p_batch = p_val[ind]
+            mu_p_batch = np.mean(p_batch)
+            sigma_p_batch = np.std(p_batch)
+            return KL_Gaussian(
+                mu=mu_p_batch,
+                sigma=sigma_p_batch,
+                m=1.0,
+                s=np.sqrt(np.mean((
+                    self.owhar.evm.known_probs()
+                    - 1.0
+                )**2)),
+            )
+
+        average_of_known_batch = int(TA1_test_size / (batch_size * 2) )
+
+        kl = np.zeros((number_of_evaluation, average_of_known_batch))
+
+        with Pool(n_cpu) as p:
+            for j in range(average_of_known_batch):
+                arr = (number_of_evaluation * j) + np.arange(number_of_evaluation)
+                kl[:, j] = p.map(task, arr)
+
+        kl_evals = np.amax(kl, axis=1)
+
+        kl_sorted = np.sort(kl_evals, kind='stable')
+
+        min_percentage_not_early = 100.0 - max_percentage_of_early
+        index = int(number_of_evaluation * (min_percentage_not_early/ 100)) + 1
+        if index >= number_of_evaluation:
+            index = -1
+
+        return kl_sorted[index]
 
     @property
     def has_world_changed(self):
@@ -111,8 +304,8 @@ class TimesformerDetector:
     def detection_threshold(self):
         return self.owhar.novelty_detector.detection_threshold
 
-    def set_detection_threshold(self value):
-        return self.owhar.novelty_detector.detection_threshold = value
+    def set_detection_threshold(self, value):
+        self.owhar.novelty_detector.detection_threshold = value
 
     @torch.no_grad()
     def feature_extraction(self, dataset_path, dataset_root, round_id=None):
@@ -264,6 +457,7 @@ class TimesformerDetector:
         self,
         max_probabilities,
         detection_threshold,
+        round_id,
         feedback_df=None
     ):
         """Performs older version of binary novelty feedback adaptation.
@@ -351,6 +545,7 @@ class TimesformerDetector:
         detect_thresh, feedback_df = self.binary_novelty_feedback_adapt(
             self.max_probabilities,
             self.detection_threshold,
+            round_id,
         )
 
         # Check if should use feedback from classes.
@@ -384,6 +579,7 @@ class TimesformerDetector:
         self.set_detection_threshold(self.binary_novelty_feedback_adapt(
             self.max_probabilities,
             self.detection_threshold,
+            round_id,
             feedback_df,
         ))
 
