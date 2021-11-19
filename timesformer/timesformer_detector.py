@@ -11,12 +11,7 @@ from fvcore.common.config import CfgNode
 
 import timesformer.utils.checkpoint as cu
 from timesformer.config.defaults import get_cfg
-<<<<<<< HEAD
 from timesformer.utils.realign_logits import realign_logits
-=======
-from timesformer.datasets.ta2 import TimesformerEval
-from timesformer.models import build_model
->>>>>>> b1533e2... copied over find_kl_threshold code from kitware, copied feedback obj code.
 
 #from arn.models.novelty_recognizer import FINCHRecognizer
 from arn.models.feedback import CLIPFeedbackInterpreter
@@ -86,7 +81,6 @@ class TimesformerDetector:
         self.number_workers = dataloader_params["n_threads"]
         self.pin_memory = dataloader_params["pin_memory"]
 
-<<<<<<< HEAD
         # Add KL parameters
         self.kl_threshold = kl_params["KL_threshold"] * kl_params["threshold_scale"]
         kl_decay_rate = kl_params["decay_rate"]
@@ -105,104 +99,6 @@ class TimesformerDetector:
                                             device=torch.device("cuda:0"))
         torch.manual_seed(0)
         np.random.seed(0)
-=======
-        if feedback_interpreter_params:
-            self.interpret_activity_feedback = True
-            interpreter = CLIPFeedbackInterpreter(
-                feedback_interpreter_params['clip_path'],
-                feedback_interpreter_params['clip_templates'],
-                feedback_interpreter_params['pred_known_map'],
-                feedback_interpreter_params['pred_label_encs'],
-                feedback_interpreter_params['feedback_known_map'],
-                feedback_interpreter_params['feedback_label_encs'],
-            )
-        else:
-            interpreter=None
-            self.interpret_activity_feedback = False
-
-        self.feedback_columns = [
-            'kinetics_id_1',
-            'kinetics_id_2',
-            'kinetics_id_3',
-            'kinetics_id_4',
-            'kinetics_id_5',
-        ]
-
-        # Must store the train features and labels for updating fine tuning.
-        self.train_features = torch.load(
-            feedback_interpreter_params['train_feature_path'],
-        )
-        self.train_labels = torch.nn.functional.one_hot(
-            torch.cat(self.train_features['labels']).type(torch.long)
-        )
-        self.train_features = torch.cat(self.train_features['feats'])
-
-        # TODO Store the val features and labels for updating fine tuning.
-        #   Currently only used to assess the val performance of model.
-        #self.val_features = torch.load(
-        #    feedback_interpreter_params['val_feature_path'],
-        #)
-        #self.val_labels = torch.nn.functional.one_hot(
-        #    torch.cat(self.val_features['labels']).type(torch.long)
-        #)
-        #self.val_features = torch.cat(self.val_features['feats'])
-
-        # OWHAR: FineTune, EVM, FINCH, CLIP Feedback Interpreter args
-        self.owhar = OWHAPredictorEVM(
-            FineTune.load(
-                torch.load(fine_tune_params["model_path"]),
-                device=torch.device('cuda'),
-            ),
-            ExtremeValueMachine.load(
-                evm_params["model_path"],
-                device=torch.device("cuda:0"),
-            ),
-            WindowedMeanKLDiv(
-                detection_threshold=detection_threshold,
-                kl_threshold=kl_params["KL_threshold"],
-                kl_threshold_decay_rate=kl_params["decay_rate"],
-                mean_train=kl_params["mu_train"],
-                std_dev_train=kl_params["sigma_train"],
-                window_size=kl_params["window_size"],
-                num_rounds=kl_params["num_rounds"],
-            ),
-            interpreter,
-        )
-
-        # Fit the OWHAR model on the given data.
-        self.owhar.fit_increment(
-            self.train_features,
-            self.train_labels,
-            True,
-            #self.val_features,
-            #self.val_labels,
-            #True,
-        )
-
-        # Obtain detection threshold and kl threshold if None provided
-        if feedback_interpreter_params['thresh_set_data']:
-            if self.owhar.novelty_detector.kl_threshold is not None:
-                logging.warning(
-                    'kl_threshold was already set, but finding from data',
-                )
-
-            test_features = torch.load(
-                feedback_interpreter_params['thresh_set_data'],
-            )
-
-            # NOTE self.detection_threshold is NOT informed from val, atm
-            self.owhar.novelty_detector.kl_threshold = self.find_kl_threshold(
-                self.train_features,
-                test_features['known'],
-                test_features['unknown'],
-            )
-
-        # TODO characterization requires an owhar per subtask.
-        self.feedback_obj = feedback_obj
-        if self.feedback_obj:
-            self.feedback_weight = kl_params['feedback_weight']
-
->>>>>>> b1533e2... copied over find_kl_threshold code from kitware, copied feedback obj code.
         self.logger.info(f"{self.logging_header}: Initialization complete")
 
     def find_kl_threshold(
@@ -367,7 +263,8 @@ class TimesformerDetector:
                         map(lambda x: torch.Tensor(x).double(), FVs))
         self.class_probabilities = torch.stack(list(class_map), axis=0)
         self.max_probabilities = torch.max(self.class_probabilities, axis=2)[0]
-        self.round_FVs = FVs
+
+        self.round_feature_dict = feature_dict
 
         if round_id == 0:
             detections = torch.zeros(len(image_names))
@@ -413,14 +310,6 @@ class TimesformerDetector:
             class_map = map(self.owhar.known_probs, FVs)
             self.class_probabilities = torch.stack(list(class_map), axis=0)
             self.max_probabilities, _ = torch.max(self.class_probabilities, axis=2)
-<<<<<<< HEAD
-=======
-            self.round_FVs = FVs
-
-        m = 1 - torch.mean(self.max_probabilities, axis=1)
-        known_probs = torch.mean(torch.tensor(self.class_probabilities), axis=1)
-        pu = torch.zeros(m.shape)
->>>>>>> 08f49f2... saved running Feature Vectors over the novelty* funcs and re-added missing copy for finding the kl threshold.
         class_logits = []
         for _, logit in logit_dict.items():
             class_logit = torch.Tensor(logit["class_preds"])
@@ -551,26 +440,25 @@ class TimesformerDetector:
 
         # Adaptation w/o class size update:
         # Update the detection threshold and get feedback
-        detect_thresh, feedback_df = self.binary_novelty_feedback_adapt(
+        feedback_df = self.binary_novelty_feedback_adapt(
             self.max_probabilities,
             self.detection_threshold,
             round_id,
-        )
+        )[1]
 
         # Check if should use feedback from classes.
         if self.interpret_activity_feedback:
-            # Get the feedback as label text
-            label_text = feedback_df[self.feedback_columns].values
-
-            # Interpret the feedback
+            # Get the feedback as label text and interpret the feedback
             feedback_labels = self.owhar.feedback_interpreter.interpret(
-                label_text,
+                feedback_df[self.feedback_columns].values,
             )
 
-            # TODO Combine the train data with the feedback data for update
+            features_arr = np.array(list(self.round_feature_dict.values()))
+
+            # Combine the train data with the feedback data for update
             self.train_features = torch.cat([
                 self.train_features,
-                self.round_FVs,
+                features_arr[feedback_df['id'].values],
             ])
             self.train_labels = torch.cat([self.train_labels, feedback_labels])
 
@@ -584,8 +472,8 @@ class TimesformerDetector:
                 #val_is_feature_repr=True,
             )
 
-        # TODO Handle the saving of results with updated predictor etc...
-        class_map = map(self.owhar.known_probs, self.round_FVs)
+        # Handle the saving of results with updated predictor etc...
+        class_map = map(self.owhar.known_probs, self.round_feature_dict.values())
         self.class_probabilities = torch.stack(list(class_map), axis=0)
         self.max_probabilities, _ = torch.max(self.class_probabilities, axis=2)
 
