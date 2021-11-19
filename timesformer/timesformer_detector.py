@@ -109,6 +109,7 @@ class TimesformerDetector:
         self.train_features = torch.cat(self.train_features['feats'])
 
         # TODO Store the val features and labels for updating fine tuning.
+        #   Currently only used to assess the val performance of model.
         #self.val_features = torch.load(
         #    feedback_interpreter_params['val_feature_path'],
         #)
@@ -149,7 +150,23 @@ class TimesformerDetector:
             #True,
         )
 
-        # TODO Obtain detection threshold and kl threshold if None provided
+        # Obtain detection threshold and kl threshold if None provided
+        if feedback_interpreter_params['thresh_set_data']:
+            if self.owhar.novelty_detector.kl_threshold is not None:
+                logging.warning(
+                    'kl_threshold was already set, but finding from data',
+                )
+
+            test_features = torch.load(
+                feedback_interpreter_params['thresh_set_data'],
+            )
+
+            # NOTE self.detection_threshold is NOT informed from val, atm
+            kl_threshold = self.owhar.novelty_detector.find_kl_threshold(
+                test_features['known'],
+                test_features['unknown'],
+            )
+            self.owhar.novelty_detector.kl_threshold = kl_threshold
 
         # TODO characterization requires an owhar per subtask.
 
