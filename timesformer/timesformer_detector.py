@@ -95,7 +95,7 @@ class TimesformerDetector:
         self.pin_memory = dataloader_params["pin_memory"]
 
         # Add KL parameters
-        self.kl_threshold = kl_params["KL_threshold"]
+        self.kl_threshold = kl_params["KL_threshold"] * kl_params["threshold_scale"]
         kl_decay_rate = kl_params["decay_rate"]
         num_rounds = kl_params["num_rounds"]
         self.sliding_window = []
