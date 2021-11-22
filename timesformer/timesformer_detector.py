@@ -14,6 +14,37 @@ from timesformer.datasets.ta2 import TimesformerEval
 from timesformer.config.defaults import get_cfg
 
 
+CLASS_MAPPING = {'Brushing': 15,
+                 'Swimming': 1,
+                 'Bowling': 28,
+                 'Riding machine': 6,
+                 'Lifting': 29,
+                 'Throwing': 3,
+                 'Cooking': 20,
+                 'Applyingmakeup': 22,
+                 'Walking': 23,
+                 'Racquet sports': 9,
+                 'Skiing': 7,
+                 'Climbing': 10,
+                 'Playing wind instruments': 11,
+                 'Playing percussion instruments': 13,
+                 'Playing string instruments': 14,
+                 'Boating': 17,
+                 'Skating': 18,
+                 'Riding animals': 5,
+                 'Jumping': 8,
+                 'Washing': 19,
+                 'Carpentry': 24,
+                 'Playing brass instruments': 12,
+                 'Wrestling': 16,
+                 'Talking': 26,
+                 'Splitting': 4,
+                 'Cutting': 21,
+                 'Hammering': 0,
+                 'Standing': 25,
+                 'Running': 2}
+
+
 class TimesformerDetector:
     def __init__(self, session_id, test_id, test_type,
                  feature_extractor_params, kl_params, evm_params,
@@ -216,28 +247,36 @@ class TimesformerDetector:
             class_map = map(self.evm.class_probabilities, FVs)
             self.class_probabilities = torch.stack(list(class_map), axis=0)
             self.max_probabilities, _ = torch.max(self.class_probabilities, axis=2)
-        m = 1 - torch.mean(self.max_probabilities, axis=1)
-        known_probs = torch.mean(torch.tensor(self.class_probabilities), axis=1)
-        pu = torch.zeros(m.shape)
         class_logits = []
         for _, logit in logit_dict.items():
             class_logit = torch.Tensor(logit["class_preds"])
             class_logits.append(class_logit)
-        logits_tensor = torch.stack(class_logits).cpu()
-        logits_tensor = torch.mean(logits_tensor, dim=1)
+        logits_tensor = torch.stack(class_logits).cpu().detach()
+        realigned_logits = torch.zeros([logits_tensor.shape[0], logits_tensor.shape[1], 30])
+        class_probabilities = torch.zeros([logits_tensor.shape[0], logits_tensor.shape[1], 30])
+
+        for current_idx, new_idx in enumerate(CLASS_MAPPING.values()):
+            realigned_logits[:, :, new_idx] = logits_tensor[:, :, current_idx]
+            class_probabilities[:, :, new_idx] = self.class_probabilities[:, :, current_idx]
+            self.logger.debug(f"Mapping {list(CLASS_MAPPING.keys())[current_idx]} to {new_idx}")
+        m = 1 - torch.mean(self.max_probabilities, axis=1)
+        known_probs = torch.mean(torch.tensor(class_probabilities), axis=1)
+        pu = torch.zeros(m.shape)
+
+        logits_tensor = torch.sum(realigned_logits, dim=1)
         softmax_scores = torch.nn.functional.softmax(logits_tensor, dim=1)
         self.logger.info(f"Softmax scores: {torch.argmax(softmax_scores, dim=1)}")
         self.logger.info(f"EVM scores: {torch.argmax(known_probs, dim=1)}")
         self.logger.info(f"Acc: {self.acc}")
-        if self.has_world_changed:
-            scaled_m = torch.ones(m.shape).double()
-            scaled_m[m >= self.detection_threshold] = \
-                (m[m >= self.detection_threshold] - 0.001)
-            scaled_softmax = torch.einsum("ij,i->ij", softmax_scores, scaled_m)
-            all_rows_tensor = torch.cat((scaled_softmax, m.view(-1, 1)), 1)
-        else:
-            pu = pu.view(-1, 1)
-            all_rows_tensor = torch.cat((softmax_scores, pu), 1)
+        #if self.has_world_changed:
+        #    scaled_m = torch.ones(m.shape).double()
+        #    scaled_m[m >= self.detection_threshold] = \
+        #        (m[m >= self.detection_threshold] - 0.001)
+        #    scaled_softmax = torch.einsum("ij,i->ij", softmax_scores, scaled_m)
+        #    all_rows_tensor = torch.cat((scaled_softmax, m.view(-1, 1)), 1)
+        #else:
+        pu = pu.view(-1, 1)
+        all_rows_tensor = torch.cat((softmax_scores, pu), 1)
         norm = torch.norm(all_rows_tensor, p=1, dim=1)
         normalized_tensor = all_rows_tensor/norm[:, None]
         df = pd.DataFrame(zip(image_names, *normalized_tensor.t().tolist()))
