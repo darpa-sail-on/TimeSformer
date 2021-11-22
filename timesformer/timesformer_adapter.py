@@ -11,7 +11,8 @@ class TimesformerAdapter(ONDAgent):
                  kl_params,
                  evm_params,
                  characterization_params,
-                 dataloader_params) -> None:
+                 dataloader_params,
+                 detection_threshold) -> None:
         """
         Constructor for X3D adapter
 
@@ -23,6 +24,7 @@ class TimesformerAdapter(ONDAgent):
         self.evm_params = evm_params
         self.dataloader_params = dataloader_params
         self.characterization_params = characterization_params
+        self.detection_threshold = detection_threshold
         ONDAgent.__init__(self)
         self.step_dict = {"Initialize": self.initialize,
                           "FeatureExtraction": self.feature_extraction,
@@ -48,7 +50,8 @@ class TimesformerAdapter(ONDAgent):
                                             self.kl_params,
                                             self.evm_params,
                                             self.characterization_params,
-                                            self.dataloader_params)
+                                            self.dataloader_params,
+                                            self.detection_threshold)
 
     def feature_extraction(self, toolset: Dict) -> Tuple:
         """
@@ -74,7 +77,9 @@ class TimesformerAdapter(ONDAgent):
         Returns:
             None
         """
-        pass
+        return self.detector.world_detection(toolset['features_dict'],
+                                             toolset['logit_dict'],
+                                             toolset['round_id'])
 
     def novelty_classification(self, toolset: Dict) -> str:
         """
@@ -86,7 +91,9 @@ class TimesformerAdapter(ONDAgent):
         Returns:
             None
         """
-        pass
+        return self.detector.novelty_classification(toolset['features_dict'],
+                                                    toolset['logit_dict'],
+                                                    toolset['round_id'])
 
     def novelty_characterization(self, toolset: Dict) -> str:
         """

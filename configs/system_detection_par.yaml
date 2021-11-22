@@ -1,9 +1,9 @@
 defaults:
   - default
-  - protocol/save_features@protocol.smqtk.config: elementwise
+  - protocol/use_features@protocol.smqtk.config: consolidated
   - _self_
 
-test_root: ???
+server_url: ???
 model_root: ???
 protocol:
   smqtk:
@@ -18,7 +18,4 @@ protocol:
         smqtk:
           class: LocalHarness
           config:
-            data_dir: ${test_root}/data
-            result_dir: ${test_root}/results
-            gt_dir: ${test_root}/data/activity_recognition
-            gt_config: ${test_root}/data/activity_recognition/activity_recognition.json
+            url: ${server_url}

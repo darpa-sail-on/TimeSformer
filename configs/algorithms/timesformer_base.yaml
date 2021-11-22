@@ -14,10 +14,13 @@ timesformer:
       kl_params:
         window_size: 100
         mu_train: 1.0
-        sigma_train: 0.1242729408792351
-        KL_threshold: 5.365822113508410
+        sigma_train: 0.9798755511726752
+        KL_threshold: 1.9159339787124976
+        decay_rate: 0.6
+        num_rounds: 40
+        threshold_scale: 5.0
       evm_params:
-        model_path: ${model_root}/x3d_feats_evm.pkl
+        model_path: ${model_root}/timesformer_feats_evm.hdf5
         distance_function: 'cosine'
         gpu_idx: 0
       characterization_params:
@@ -35,3 +38,4 @@ timesformer:
         train_jitter_scales: [256, 320]
         test_crop_size: 224
         input_channel_num: [3]
+      detection_threshold: 0.5
