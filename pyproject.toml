@@ -22,6 +22,7 @@ vast = {git = "https://github.com/prijatelj/vast.git", rev = "update-atol-precis
 exputils = "^0.1.5"
 pkbar = "^0.5"
 pyflann-py3 = "^0.1.0"
+hydra-submitit-launcher = "^1.1.6"
 
 [tool.poetry.dev-dependencies]
 

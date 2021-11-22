@@ -81,6 +81,14 @@ colorama = {version = "*", markers = "platform_system == \"Windows\""}
 importlib-metadata = {version = "*", markers = "python_version < \"3.8\""}
 
 [[package]]
+name = "cloudpickle"
+version = "2.0.0"
+description = "Extended pickling support for Python objects"
+category = "main"
+optional = false
+python-versions = ">=3.6"
+
+[[package]]
 name = "colorama"
 version = "0.4.4"
 description = "Cross-platform colored terminal text."
@@ -270,6 +278,18 @@ python-versions = "*"
 antlr4-python3-runtime = "4.8"
 importlib-resources = {version = "*", markers = "python_version < \"3.9\""}
 omegaconf = ">=2.1.0,<2.2.0"
+
+[[package]]
+name = "hydra-submitit-launcher"
+version = "1.1.6"
+description = "Submitit Launcher for Hydra apps"
+category = "main"
+optional = false
+python-versions = "*"
+
+[package.dependencies]
+hydra-core = ">=1.1.0.dev7"
+submitit = ">=1.0.0"
 
 [[package]]
 name = "idna"
@@ -936,6 +956,21 @@ optional = false
 python-versions = "*"
 
 [[package]]
+name = "submitit"
+version = "1.4.0"
+description = "Python 3.6+ toolbox for submitting jobs to Slurm"
+category = "main"
+optional = false
+python-versions = ">=3.6"
+
+[package.dependencies]
+cloudpickle = ">=1.2.1"
+typing-extensions = ">=3.7.4.2"
+
+[package.extras]
+dev = ["pytest (>=4.3.0)", "pytest-asyncio (>=0.15.0)", "pytest-cov (>=2.6.1)", "coverage[toml] (>=5.1)", "black (==21.4b2)", "isort (==5.5.3)", "pre-commit (>=1.15.2)", "mypy (>=0.782)", "types-pkg-resources (>=0.1.2)", "pylint (>=2.8.0)", "setuptools (>=56.0.0)", "twine (>=3.4.1)", "wheel (>=0.36.2)"]
+
+[[package]]
 name = "tabulate"
 version = "0.8.9"
 description = "Pretty-print tabular data"
@@ -1201,7 +1236,7 @@ tensorboard_video_visualization = []
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.7,<3.11"
-content-hash = "76537c4169f5e054f9a19f116efd51c42d923245b10639860c07897939373f9c"
+content-hash = "01437d176a31c680411940628ccaf54ecaff3a386348394cc80cad1fbe84941b"
 
 [metadata.files]
 absl-py = [
@@ -1267,6 +1302,10 @@ charset-normalizer = [
 click = [
     {file = "click-8.0.3-py3-none-any.whl", hash = "sha256:353f466495adaeb40b6b5f592f9f91cb22372351c84caeb068132442a4518ef3"},
     {file = "click-8.0.3.tar.gz", hash = "sha256:410e932b050f5eed773c4cda94de75971c89cdb3155a72a0831139a79e5ecb5b"},
+]
+cloudpickle = [
+    {file = "cloudpickle-2.0.0-py3-none-any.whl", hash = "sha256:6b2df9741d06f43839a3275c4e6632f7df6487a1f181f5f46a052d3c917c3d11"},
+    {file = "cloudpickle-2.0.0.tar.gz", hash = "sha256:5cd02f3b417a783ba84a4ec3e290ff7929009fe51f6405423cfccfadd43ba4a4"},
 ]
 colorama = [
     {file = "colorama-0.4.4-py2.py3-none-any.whl", hash = "sha256:9f47eda37229f68eee03b24b9748937c7dc3868f906e8ba69fbcbdd3bc5dc3e2"},
@@ -1377,6 +1416,10 @@ hydra-colorlog = [
 hydra-core = [
     {file = "hydra-core-1.1.1.tar.gz", hash = "sha256:d396d4d979ff66e2d654b8ef5435ad3b6bbd093c4330f3ed316c339d5d741269"},
     {file = "hydra_core-1.1.1-py3-none-any.whl", hash = "sha256:928b154d8105db4ee67d768e3cd0f74ca9373121fc99dee54488393b17a31929"},
+]
+hydra-submitit-launcher = [
+    {file = "hydra-submitit-launcher-1.1.6.tar.gz", hash = "sha256:9bd9d60663b163d2fbac044359f0fe80d575a75eeb68247a1aac67d5fd4b0224"},
+    {file = "hydra_submitit_launcher-1.1.6-py3-none-any.whl", hash = "sha256:42739ae2fd658ad3f070345934f9c908c381a0e465202cb959b4cb7307541c4f"},
 ]
 idna = [
     {file = "idna-3.3-py3-none-any.whl", hash = "sha256:84d9dd047ffa80596e0f246e2eab0b391788b0503584e8945f2368256d2735ff"},
@@ -2036,6 +2079,10 @@ sortedcollections = [
 sortedcontainers = [
     {file = "sortedcontainers-2.4.0-py2.py3-none-any.whl", hash = "sha256:a163dcaede0f1c021485e957a39245190e74249897e2ae4b2aa38595db237ee0"},
     {file = "sortedcontainers-2.4.0.tar.gz", hash = "sha256:25caa5a06cc30b6b83d11423433f65d1f9d76c4c6a0c90e3379eaa43b9bfdb88"},
+]
+submitit = [
+    {file = "submitit-1.4.0-py3-none-any.whl", hash = "sha256:2c4988b87d28393e49fc56af40683ca09c0e1471057f73329139eb4bba54fab3"},
+    {file = "submitit-1.4.0.tar.gz", hash = "sha256:a99e2728195e38681586abe4c731d1e289068e00d5ca233e9e2177f474244bf9"},
 ]
 tabulate = [
     {file = "tabulate-0.8.9-py3-none-any.whl", hash = "sha256:d7c013fe7abbc5e491394e10fa845f8f32fe54f8dc60c6622c6cf482d25d47e4"},
