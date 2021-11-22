@@ -243,10 +243,7 @@ class TimesformerDetector:
                 mu=mu_p_batch,
                 sigma=sigma_p_batch,
                 m=1.0,
-                s=np.sqrt(np.mean((
-                    self.owhar.known_probs()
-                    - 1.0
-                )**2)),
+                s=np.sqrt(np.mean((p_train - 1.0)**2)),
             )
 
         average_of_known_batch = int(TA1_test_size / (batch_size * 2) )
