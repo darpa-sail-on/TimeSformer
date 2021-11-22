@@ -127,10 +127,7 @@ class TimesformerAdapter(ONDAgent):
         Returns:
             None
         """
-        raise NotImplementedError()
-        return self.detector.novelty_adaptation(
-            toolset['round_id'],
-        )
+        return self.detector.novelty_adaptation(toolset['round_id'])
 
     def execute(self, toolset: Dict, step_descriptor: str) -> Any:
         """
