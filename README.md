@@ -89,6 +89,18 @@ their [paper](https://arxiv.org/pdf/2102.05095.pdf).
                                      protocol.smqtk.config.test_ids=[<comma seperated list of test ids>]
    ```
 
+4. [Optional] To use slurm with the feature extraction use the following command
+   ```
+    HYDRA_FULL_ERROR=1 sail-on-client --config-dir configs/ \
+                                      --config-name feature_extraction_local \
+                                      --multirun protocol.smqtk.config.test_ids=["OND.9.99999.0"],["OND.9.99999.1"],["OND.9.99999.2"],["OND.9.99999.3"],["OND.9.99999.4"],["OND.9.99999.5"],["OND.9.99999.6"],["OND.9.99999.7"] \
+                                      test_root=/data/datasets/m24-activity-test/feature_extraction_tests \
+                                      protocol.smqtk.config.dataset_root=/data/datasets/m24-activity-test/1115_2021 \
+                                      model_root=/home/khq.kitware.com/ameya.shringi/models/timesformer-m24 \
+                                      protocol.smqtk.config.feature_dir=/home/khq.kitware.com/ameya.shringi/features/timesformer-m24 \
+                                      algorithms@protocol.smqtk.config.algorithms=[timesformer_base] \
+                                      hydra/launcher=veydrus \
+
 ### System Detection
 
 1. Download the features from [google drive](https://drive.google.com/drive/folders/15mbBTOUtfV47EziACEPcc2gXqzKFuKpI?usp=sharing)
