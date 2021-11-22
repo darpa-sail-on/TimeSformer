@@ -21,7 +21,7 @@ timesformer:
         num_rounds: 40
         threshold_scale: 3.0
       evm_params:
-        tail_size: 8000
+        tail_size: 5000 # Cannot exceed half of the number of training samples
         distance_function: 'cosine'
         distance_threshold: 0.4
         cover_threshold: 0.8
