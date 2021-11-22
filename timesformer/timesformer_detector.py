@@ -125,7 +125,10 @@ class TimesformerDetector:
         # OWHAR: FineTune, EVM, FINCH, CLIP Feedback Interpreter args
         self.owhar = OWHAPredictorEVM(
             FineTune.load(
-                torch.load(fine_tune_params["model_path"]),
+                FineTuneFCANN(
+                    fine_tune_params["model"]['input_size'],
+                ),
+                fine_tune_params["fit_args"],
                 device=torch.device('cuda'),
             ),
             ExtremeValueMachine.load(
