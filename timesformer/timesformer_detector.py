@@ -118,7 +118,6 @@ class TimesformerDetector:
                         "location_preds": preds_loc.detach().cpu().numpy(),
                         "relation_preds": preds_rel.detach().cpu().numpy()
                     }
-        known_feats = torch.load("/home/ameya/features/TimeSformer/timesformer_test_feats.bin")["known"]
         self.logger.info(f"{self.logging_header}: Finished feature extraction")
         return feature_dict, logit_dict
 
@@ -225,11 +224,8 @@ class TimesformerDetector:
             class_logit = torch.Tensor(logit["class_preds"])
             class_logits.append(class_logit)
         logits_tensor = torch.stack(class_logits).cpu()
-        #self.logger.info(f"Logits: {logits_tensor}")
         logits_tensor = torch.mean(logits_tensor, dim=1)
-        #self.logger.info(f"Mean of logits: {logits_tensor}")
         softmax_scores = torch.nn.functional.softmax(logits_tensor, dim=1)
-        #self.logger.info(f"Softmax of logits: {softmax_scores}")
         self.logger.info(f"Softmax scores: {torch.argmax(softmax_scores, dim=1)}")
         self.logger.info(f"EVM scores: {torch.argmax(known_probs, dim=1)}")
         self.logger.info(f"Acc: {self.acc}")
