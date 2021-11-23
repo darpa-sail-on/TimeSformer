@@ -51,6 +51,8 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
         :param detection_threshold (float): The threshold for binary detection
         :param feedback_obj: An instance used for requesting feedback
         """
+        # TODO some of this can be resolved with super().init, but needs
+        # thought thru. For now all that matters is it will work.
         self.logger = logging.getLogger(__name__)
         self.session_id = session_id
         self.test_id = test_id
