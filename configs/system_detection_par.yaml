@@ -20,4 +20,4 @@ protocol:
           class: ParHarness
           config:
             url: ${server_url}
-            save_directory: ${hydra:run.dir}
+            save_directory: ""
