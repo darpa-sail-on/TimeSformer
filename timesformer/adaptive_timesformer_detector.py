@@ -365,7 +365,7 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
         #self.logger.info(f"EVM scores: {torch.argmax(known_probs, dim=1)}")
         self.logger.info(f"Acc: {self.acc}")
 
-        pu = pu.view(-1, 1)
+        pu = torch.zeros(fine_tune_preds.shape[0]).view(-1, 1)
         all_rows_tensor = torch.cat((fine_tune_preds, pu), 1)
 
         norm = torch.norm(all_rows_tensor, p=1, dim=1)
