@@ -349,36 +349,28 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
 
         # TODO if world_detection not run first, have to run probs throu
 
-        if not hasattr(self, "class_probabilities"):
-            class_map = map(self.owhar.known_probs, FVs)
-            self.class_probabilities = torch.stack(list(class_map), axis=0)
-            self.max_probabilities, _ = torch.max(self.class_probabilities, axis=2)
-            self.round_feature_dict = feature_dict
+        #if not hasattr(self, "class_probabilities"):
+        #    class_map = map(self.owhar.known_probs, FVs)
+        #    self.class_probabilities = torch.stack(list(class_map), axis=0)
+        #    self.max_probabilities, _ = torch.max(self.class_probabilities, axis=2)
+        #    self.round_feature_dict = feature_dict
 
-        m = 1 - torch.mean(self.max_probabilities, axis=1)
-        known_probs = torch.mean(torch.tensor(self.class_probabilities), axis=1)
-        pu = torch.zeros(m.shape)
-        class_logits = []
-        for _, logit in logit_dict.items():
-            class_logit = torch.Tensor(logit["class_preds"])
-            class_logits.append(class_logit)
-        logits_tensor = torch.stack(class_logits).cpu()
-        softmax_scores = torch.nn.functional.softmax(logits_tensor, dim=1)
-        softmax_scores = torch.mean(softmax_scores, axis=1)
-        self.logger.info(f"Softmax scores: {torch.argmax(softmax_scores, dim=1)}")
-        self.logger.info(f"EVM scores: {torch.argmax(known_probs, dim=1)}")
+        # TODO add switch to classify from TimeSformer, FineTune, or EVM
+
+        fine_tune_preds = self.owhar.fine_tune.predict(
+            torch.stack(FVs, axis=0),
+        )
+
+        self.logger.info(f"Softmax scores: {torch.argmax(fine_tune_preds, dim=1)}")
+        #self.logger.info(f"EVM scores: {torch.argmax(known_probs, dim=1)}")
         self.logger.info(f"Acc: {self.acc}")
-        if self.has_world_changed:
-            scaled_m = torch.ones(m.shape).double()
-            scaled_m[m >= self.detection_threshold] = \
-                (m[m >= self.detection_threshold] - 0.001)
-            scaled_softmax = torch.einsum("ij,i->ij", softmax_scores, scaled_m)
-            all_rows_tensor = torch.cat((scaled_softmax, m.view(-1, 1)), 1)
-        else:
-            pu = pu.view(-1, 1)
-            all_rows_tensor = torch.cat((softmax_scores, pu), 1)
+
+        pu = pu.view(-1, 1)
+        all_rows_tensor = torch.cat((fine_tune_preds, pu), 1)
+
         norm = torch.norm(all_rows_tensor, p=1, dim=1)
         normalized_tensor = all_rows_tensor/norm[:, None]
+
         df = pd.DataFrame(zip(image_names, *normalized_tensor.t().tolist()))
         if round_id is None:
             result_path = f"ncl_{self.session_id}_{self.test_id}.csv"
