@@ -1,6 +1,7 @@
 defaults:
   - default
   - protocol/use_features@protocol.smqtk.config: consolidated
+  - override /harness@protocol.smqtk.config.harness: par
   - _self_
 
 server_url: ???
@@ -16,6 +17,6 @@ protocol:
       feature_dir: ???
       harness:
         smqtk:
-          class: LocalHarness
+          class: ParHarness
           config:
             url: ${server_url}
