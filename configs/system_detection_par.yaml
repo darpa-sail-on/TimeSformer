@@ -20,3 +20,4 @@ protocol:
           class: ParHarness
           config:
             url: ${server_url}
+            save_directory: ""
