@@ -21,10 +21,10 @@ timesformer:
         num_rounds: 40
         threshold_scale: 3.0
       evm_params:
-        tail_size: 5000 # Cannot exceed half of the number of training samples
+        tail_size: 4000 # Cannot exceed half of the number of training samples
         distance_function: 'cosine'
-        distance_threshold: 0.4
-        cover_threshold: 0.8
+        distance_threshold: 0.45
+        cover_threshold: 0.7
         gpu_idx: 0
       fine_tune_params:
         model:
