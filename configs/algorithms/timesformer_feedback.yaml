@@ -33,12 +33,12 @@ timesformer:
           batch_size: 1000
           epochs: 20
       feedback_interpreter_params:
-        clip_path: "[TODO Add local path]/models/clip/clip_ViT-B_32.pt"
-        clip_templates: "[TODO Add local path]/data/clip/k700_templates.txt"
-        pred_known_map: "[TODO Add local path]/data/par/ordered_par_classes.txt"
-        pred_label_encs: "[TODO Add local path]/data/par/clip_par_ontology_idx_sorted_label_text_encs.pt"
-        feedback_known_map: "[TODO Add local path]/data/kinetics/kinetics600/unique_sorted_actions.csv"
-        feedback_label_encs: "[TODO Add local path]/data/kinetics/kinetics600/clip_sorted_label_text_encs.pt"
+        clip_path: "${model_root}/models/clip/clip_ViT-B_32.pt"
+        clip_templates: "${model_root}/data/clip/k700_templates.txt"
+        pred_known_map: "${model_root}/data/par/ordered_par_classes.txt"
+        pred_label_encs: "${model_root}/data/par/clip_par_ontology_idx_sorted_label_text_encs.pt"
+        feedback_known_map: "${model_root}/data/kinetics/kinetics600/unique_sorted_actions.csv"
+        feedback_label_encs: "${model_root}/data/kinetics/kinetics600/clip_sorted_label_text_encs.pt"
         train_feature_path: "${model_root}/timesformer_train_feats.bin"
         thresh_set_data: "${model_root}/timesformer_test_feats.bin"
       dataloader_params:
