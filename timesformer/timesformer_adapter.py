@@ -110,12 +110,6 @@ class TimesformerAdapter(ONDAgent):
             None
         """
         pass
-        #raise NotImplementedError()
-        #return self.detector.novelty_characterization(
-        #    toolset['dataset'],
-        #    toolset['dataset_root'],
-        #    toolset['round_id'],
-        #)
 
     def novelty_adaptation(self, toolset: Dict) -> None:
         """
