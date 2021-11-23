@@ -33,3 +33,4 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.plugins."smqtk_plugins"]
 timesformer = "timesformer.timesformer_adapter"
+timesformer_rd = "timesformer.timesformer_rd_adapter"

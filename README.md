@@ -90,9 +90,12 @@ their [paper](https://arxiv.org/pdf/2102.05095.pdf).
    ```
 
 ### System Detection
-1. Download the features from [google drive]()
 
-2. With the evaluation server use the following command
+1. Download the features from [google drive](https://drive.google.com/drive/folders/15mbBTOUtfV47EziACEPcc2gXqzKFuKpI?usp=sharing)
+
+2. Download the evm model (HDF5 File) from [google drive](https://drive.google.com/drive/folders/1NbYqoOBoSl8iUi-tHy0uE1AkRkxzkMki)
+
+3. With the evaluation server use the following command
    ```
      HYDRA_FULL_ERROR=1 sail-on-client --config-dir configs/ \
                                        --config-name system_detection_par \
@@ -104,7 +107,7 @@ their [paper](https://arxiv.org/pdf/2102.05095.pdf).
                                        protocol.smqtk.config.test_ids=[<comma seperated test ids>]
    ```
 
-3. With files on the machine using the following command
+4. With files on the machine using the following command
    ```
      HYDRA_FULL_ERROR=1 sail-on-client --config-dir configs/ \
                                        --config-name system_detection_local \
@@ -112,6 +115,35 @@ their [paper](https://arxiv.org/pdf/2102.05095.pdf).
                                        protocol.smqtk.config.feature_dir=<root directory with features> \
                                        protocol.smqtk.config.dataset_root=<root directory with videos> \
                                        algorithms@protocol.smqtk.config.algorithms=[timesformer_base]
+                                       protocol.smqtk.config.test_ids=[<comma seperate test ids>]
+   ```
+
+### Given Detection
+
+1. Download the features from [google drive](https://drive.google.com/drive/folders/15mbBTOUtfV47EziACEPcc2gXqzKFuKpI?usp=sharing)
+
+2. Download the evm model (HDF5 File) from [google drive](https://drive.google.com/drive/folders/1NbYqoOBoSl8iUi-tHy0uE1AkRkxzkMki)
+
+3. With the evaluation server use the following command
+   ```
+     HYDRA_FULL_ERROR=1 sail-on-client --config-dir configs/ \
+                                       --config-name given_detection_par \
+                                       server_url=<url for server> \
+                                       model_root=<root directory where models are stored> \
+                                       protocol.smqtk.config.feature_dir=<root directory where features are stored> \
+                                       protocol.smqtk.config.dataset_root=<root directory of vidoes> \
+                                       algorithms@protocol.smqtk.config.algorithms=[timesformer_rd] \
+                                       protocol.smqtk.config.test_ids=[<comma seperated test ids>]
+   ```
+
+4. With files on the machine using the following command
+   ```
+     HYDRA_FULL_ERROR=1 sail-on-client --config-dir configs/ \
+                                       --config-name given_detection_local \
+                                       test_root=<root directory with tests> \
+                                       protocol.smqtk.config.feature_dir=<root directory with features> \
+                                       protocol.smqtk.config.dataset_root=<root directory with videos> \
+                                       algorithms@protocol.smqtk.config.algorithms=[timesformer_rd]
                                        protocol.smqtk.config.test_ids=[<comma seperate test ids>]
    ```
 
