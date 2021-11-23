@@ -268,15 +268,15 @@ class TimesformerDetector:
         self.logger.info(f"Softmax scores: {torch.argmax(softmax_scores, dim=1)}")
         self.logger.info(f"EVM scores: {torch.argmax(known_probs, dim=1)}")
         self.logger.info(f"Acc: {self.acc}")
-        #if self.has_world_changed:
-        #    scaled_m = torch.ones(m.shape).double()
-        #    scaled_m[m >= self.detection_threshold] = \
-        #        (m[m >= self.detection_threshold] - 0.001)
-        #    scaled_softmax = torch.einsum("ij,i->ij", softmax_scores, scaled_m)
-        #    all_rows_tensor = torch.cat((scaled_softmax, m.view(-1, 1)), 1)
-        #else:
-        pu = pu.view(-1, 1)
-        all_rows_tensor = torch.cat((softmax_scores, pu), 1)
+        if self.has_world_changed:
+            scaled_m = torch.ones(m.shape).double()
+            scaled_m[m >= self.detection_threshold] = \
+                (m[m >= self.detection_threshold] - 0.001)
+            scaled_softmax = torch.einsum("ij,i->ij", softmax_scores, scaled_m)
+            all_rows_tensor = torch.cat((scaled_softmax, m.view(-1, 1)), 1)
+        else:
+            pu = pu.view(-1, 1)
+            all_rows_tensor = torch.cat((softmax_scores, pu), 1)
         norm = torch.norm(all_rows_tensor, p=1, dim=1)
         normalized_tensor = all_rows_tensor/norm[:, None]
         df = pd.DataFrame(zip(image_names, *normalized_tensor.t().tolist()))
