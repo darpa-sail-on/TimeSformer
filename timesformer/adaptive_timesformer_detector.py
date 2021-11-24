@@ -112,8 +112,8 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
         )
         self.train_labels = torch.nn.functional.one_hot(
             torch.cat(self.train_features['labels']).type(torch.long)
-        )
-        self.train_features = torch.cat(self.train_features['feats']).float()
+        ).float()
+        self.train_features = torch.cat(self.train_features['feats'])
 
         # TODO Store the val features and labels for updating fine tuning.
         #   Currently only used to assess the val performance of model.
