@@ -1,0 +1,26 @@
+defaults:
+  - default
+  - protocol/use_features@protocol.smqtk.config: consolidated
+  - protocol/resume_session@protocol.smqtk.config: resume_timesformer
+  - override /harness@protocol.smqtk.config.harness: par
+  - _self_
+
+server_url: ???
+model_root: ???
+protocol:
+  smqtk:
+    class: ONDProtocol
+    config:
+      domain: activity_recognition
+      resume_session_ids:
+        timesformer: ???
+      test_ids:
+        - OND.10.90001.2100554
+      dataset_root: ???
+      feature_dir: ???
+      harness:
+        smqtk:
+          class: ParHarness
+          config:
+            url: ${server_url}
+            save_directory: ""
