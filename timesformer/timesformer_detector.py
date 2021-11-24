@@ -109,7 +109,7 @@ class TimesformerDetector:
 
         self.detection_threshold = detection_threshold
         self.evm = ExtremeValueMachine.load(evm_params["model_path"],
-                                            device="cuda:0")
+                                            device=torch.device("cuda:0"))
         torch.manual_seed(0)
         np.random.seed(0)
         self.logger.info(f"{self.logging_header}: Initialization complete")
