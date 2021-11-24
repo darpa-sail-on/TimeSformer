@@ -23,6 +23,7 @@ timesformer:
       evm_params:
         tail_size: 4000 # Cannot exceed half of the number of training samples
         distance_function: 'cosine'
+        distance_multiplier: 1.0
         distance_threshold: 0.45
         cover_threshold: 0.7
         gpu_idx: 0
