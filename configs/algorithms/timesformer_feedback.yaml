@@ -1,7 +1,7 @@
 # The TimeSformer within Open World Learning framework with EVM and feedback
 timesformer:
   smqtk:
-    class: TimesformerAdapter
+    class: AdaptiveTimesformerAdapter
     config:
       fe_params:
         model_name: vit_base_patch16_224
