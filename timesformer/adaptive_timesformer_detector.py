@@ -385,22 +385,16 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
             logger_header += " Round id: {}".format(round_id)
         return logger_header
 
-    def binary_novelty_feedback_adapt(
+    def get_feedback(
         self,
         max_probabilities,
         detection_threshold,
         round_id,
-        feedback_df=None
+        return_details=False,
     ):
-        """Performs older version of binary novelty feedback adaptation.
-
-        Returns
-        -------
-        float | float, pandas.DataFrame
-            The new detection threshold is returned. The feedback data_frame is
-            returned when feedback_df is not given as an argument.
+        """Get feedback on those detected as novel and fill with those detected
+        as non-novel otherwise.
         """
-        # TODO Make your variable names more descriptive.
         m = 1 - torch.mean(max_probabilities, axis=1)
         m = m.detach().cpu().numpy()
 
@@ -430,18 +424,44 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
         known_image = pred_known_sorted[:half_income_per_batch, 0]
         image_list = np.concatenate([known_image, unknown_image]).tolist()
 
-        if feedback_df is None:
-            data_frame = self.feedback_obj.get_feedback(
-                round_id,
-                image_list,
-                self.image_names,
-            )
-        else:
-            data_frame = feedback_df
+        feedback_df = self.feedback_obj.get_feedback(
+            round_id,
+            image_list,
+            self.image_names,
+        )
+
+        if return_details:
+            return feedback_df, len(known_image), half_income_per_batch
+        return feedback_df
+
+    def binary_novelty_feedback_adapt(
+        self,
+        max_probabilities,
+        detection_threshold,
+        round_id,
+        feedback_df=None
+    ):
+        """Performs older version of binary novelty feedback adaptation.
+
+        Returns
+        -------
+        float | float, pandas.DataFrame
+            The new detection threshold is returned. The feedback data_frame is
+            returned when feedback_df is not given as an argument.
+        """
+        #if feedback_df is None:
+        data_frame, len_known, half_income_per_batch = self.get_feedback(
+            max_probabilities,
+            detection_threshold,
+            round_id,
+            return_details=True,
+        )
+        #else:
+        #    data_frame = feedback_df
 
         # Get known and unknown labels
-        known_labels = data_frame["labels"][:len(known_image)].to_numpy()
-        unknown_labels = data_frame["labels"][len(known_image):].to_numpy()
+        known_labels = data_frame["labels"][:len_known].to_numpy()
+        unknown_labels = data_frame["labels"][len_known:].to_numpy()
 
         # Record known and unknown prediction performance
         known_pred_wrong = len(known_labels[known_labels == 88])
@@ -473,38 +493,47 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
             return
 
         # Adaptation w/o class size update:
-        # Update the detection threshold and get feedback
-        feedback_df = self.binary_novelty_feedback_adapt(
+        # Update the detection threshold and get FEEDBACK
+        # NOTE rm because no binary novelty feedback given in m24.
+        #feedback_df = self.binary_novelty_feedback_adapt(
+        #    self.max_probabilities,
+        #    self.detection_threshold,
+        #    round_id,
+        #)[1]
+
+        # Check if should use feedback from classes.
+        if not self.interpret_activity_feedback:
+            return
+
+        feedback_df = self.get_feedback(
             self.max_probabilities,
             self.detection_threshold,
             round_id,
-        )[1]
+        )
 
-        # Check if should use feedback from classes.
-        if self.interpret_activity_feedback:
-            # Get the feedback as label text and interpret the feedback
-            feedback_labels = self.owhar.feedback_interpreter.interpret(
-                feedback_df[self.feedback_columns].values,
-            )
+        # Get the feedback as label text and interpret the feedback
+        feedback_labels = self.owhar.feedback_interpreter.interpret(
+            feedback_df[self.feedback_columns].values,
+        )
 
-            features_arr = np.array(list(self.round_feature_dict.values()))
+        features_arr = np.array(list(self.round_feature_dict.values()))
 
-            # Combine the train data with the feedback data for update
-            self.train_features = torch.cat([
-                self.train_features,
-                features_arr[feedback_df['id'].values],
-            ])
-            self.train_labels = torch.cat([self.train_labels, feedback_labels])
+        # Combine the train data with the feedback data for update
+        self.train_features = torch.cat([
+            self.train_features,
+            features_arr[feedback_df['id'].values], # id values are indeices
+        ])
+        self.train_labels = torch.cat([self.train_labels, feedback_labels])
 
-            # Incremental fits on all prior train and saved feedback
-            self.owhar.fit_increment(
-                self.train_labels,
-                self.train_labels,
-                is_feature_repr=True,
-                #val_input_samples,
-                #val_labels,
-                #val_is_feature_repr=True,
-            )
+        # Incremental fits on all prior train and saved feedback
+        self.owhar.fit_increment(
+            self.train_labels,
+            self.train_labels,
+            is_feature_repr=True,
+            #val_input_samples,
+            #val_labels,
+            #val_is_feature_repr=True,
+        )
 
         # Handle the saving of results with updated predictor etc...
         class_map = map(self.owhar.known_probs, self.round_feature_dict.values())
@@ -513,12 +542,12 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
 
         # Adaptation given only novelty information after updating the fine
         # tune and the EVM.
-        self.set_detection_threshold(self.binary_novelty_feedback_adapt(
-            self.max_probabilities,
-            self.detection_threshold,
-            round_id,
-            feedback_df,
-        ))
+        #self.set_detection_threshold(self.binary_novelty_feedback_adapt(
+        #    self.max_probabilities,
+        #    self.detection_threshold,
+        #    round_id,
+        #    feedback_df,
+        #))
 
         # TODO adaptation w/ class size update (thus FINCH after deciding novel
         # classes exist and enough samples for them). This won't happen until
