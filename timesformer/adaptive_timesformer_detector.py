@@ -111,7 +111,7 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
             feedback_interpreter_params['train_feature_path'],
         )
         self.train_labels = torch.nn.functional.one_hot(
-            torch.cat(self.train_features['labels'])#.type(torch.long)
+            torch.cat(self.train_features['labels']).type(torch.long)
         )
         self.train_features = torch.cat(self.train_features['feats'])
 
