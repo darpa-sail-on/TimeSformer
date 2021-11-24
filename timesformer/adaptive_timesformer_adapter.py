@@ -27,8 +27,8 @@ class AdaptiveTimesformerAdapter(TimesformerAdapter):
         self.kl_params = kl_params
         self.evm_params = evm_params
         self.dataloader_params = dataloader_params
-        self.fine_tune_params = fine_tune_params,
-        self.feedback_interpreter_params = feedback_interpreter_params,
+        self.fine_tune_params = fine_tune_params
+        self.feedback_interpreter_params = feedback_interpreter_params
         self.detection_threshold = detection_threshold
         ONDAgent.__init__(self)
         self.step_dict = {"Initialize": self.initialize,
