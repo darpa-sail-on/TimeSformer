@@ -136,6 +136,7 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
             ),
             ExtremeValueMachine(
                 device=torch.device("cuda:0"),
+                labels=list(interpreter.pred_known_map.encoder),
                 **evm_params,
             ),
             WindowedMeanKLDiv(
