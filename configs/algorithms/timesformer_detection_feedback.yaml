@@ -25,6 +25,7 @@ timesformer:
         gpu_idx: 0
       adaptation_params:
         min_samples: 50
+        known_features: ${model_root}/timesformer_train_feats.bin
       dataloader_params:
         num_workers: 12
         pin_memory: True

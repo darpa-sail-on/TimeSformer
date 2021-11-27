@@ -120,7 +120,7 @@ class TimesformerWithDetectionFeedback(TimesformerWithRedlightDetector):
                                           distance="cosine")
         cluster_labels, cluster_count = np.unique(clusters[:, -1], return_counts=True)
         self.logger.info(f"{logging_header}: Retraining EVM")
-        self.discover_evm = ExtremeValueMachine(tail_size=np.max(cluster_count),
+        self.discover_evm = ExtremeValueMachine(tail_size=8000,
                                                 cover_threshold=0.8,
                                                 distance_multiplier=0.4,
                                                 labels=cluster_labels,
@@ -129,7 +129,9 @@ class TimesformerWithDetectionFeedback(TimesformerWithRedlightDetector):
         novel_features_map = map(lambda x: torch.from_numpy(x), self.novel_features)
         feature_tensor = torch.cat(list(novel_features_map), dim=0)
         feature_labels  = torch.from_numpy(clusters[:, -1]).float()
-        self.discover_evm.fit(feature_tensor, feature_labels)
+        known_features = torch.load(self.adaptation_params["known_features"])["feats"]
+        known_features = torch.cat(known_features)
+        self.discover_evm.fit(feature_tensor, feature_labels, extra_negatives=known_features)
         self.logger.info(f"{logging_header}: Finished Retraining EVM")
 
 
