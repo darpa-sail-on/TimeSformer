@@ -12,37 +12,7 @@ import timesformer.utils.checkpoint as cu
 from timesformer.models import build_model
 from timesformer.datasets.ta2 import TimesformerEval
 from timesformer.config.defaults import get_cfg
-
-
-CLASS_MAPPING = {'Brushing': 15,
-                 'Swimming': 1,
-                 'Bowling': 28,
-                 'Riding machine': 6,
-                 'Lifting': 29,
-                 'Throwing': 3,
-                 'Cooking': 20,
-                 'Applyingmakeup': 22,
-                 'Walking': 23,
-                 'Racquet sports': 9,
-                 'Skiing': 7,
-                 'Climbing': 10,
-                 'Playing wind instruments': 11,
-                 'Playing percussion instruments': 13,
-                 'Playing string instruments': 14,
-                 'Boating': 17,
-                 'Skating': 18,
-                 'Riding animals': 5,
-                 'Jumping': 8,
-                 'Washing': 19,
-                 'Carpentry': 24,
-                 'Playing brass instruments': 12,
-                 'Wrestling': 16,
-                 'Talking': 26,
-                 'Splitting': 4,
-                 'Cutting': 21,
-                 'Hammering': 0,
-                 'Standing': 25,
-                 'Running': 2}
+from timesformer.utils.realign_logits import realign_logits
 
 
 class TimesformerDetector:
@@ -252,17 +222,12 @@ class TimesformerDetector:
             class_logit = torch.Tensor(logit["class_preds"])
             class_logits.append(class_logit)
         logits_tensor = torch.stack(class_logits).cpu().detach()
-        realigned_logits = torch.zeros([logits_tensor.shape[0], logits_tensor.shape[1], 30])
-        class_probabilities = torch.zeros([logits_tensor.shape[0], logits_tensor.shape[1], 30])
-
-        for current_idx, new_idx in enumerate(CLASS_MAPPING.values()):
-            realigned_logits[:, :, new_idx] = logits_tensor[:, :, current_idx]
-            class_probabilities[:, :, new_idx] = self.class_probabilities[:, :, current_idx]
-            self.logger.debug(f"Mapping {list(CLASS_MAPPING.keys())[current_idx]} to {new_idx}")
+        realigned_logits = realign_logits(logits_tensor)
+        class_probabilities = realign_logits(self.class_probabilities)
         m = 1 - torch.mean(self.max_probabilities, axis=1)
+
         known_probs = torch.mean(torch.tensor(class_probabilities), axis=1)
         pu = torch.zeros(m.shape)
-
         logits_tensor = torch.sum(realigned_logits, dim=1)
         softmax_scores = torch.nn.functional.softmax(logits_tensor, dim=1)
         self.logger.info(f"Softmax scores: {torch.argmax(softmax_scores, dim=1)}")
