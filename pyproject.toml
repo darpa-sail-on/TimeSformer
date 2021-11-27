@@ -6,7 +6,7 @@ authors = ["Your Name <you@example.com>"]
 
 [tool.poetry.dependencies]
 python = ">=3.7,<3.11"
-sail-on-client = {git = "https://github.com/darpa-sail-on/sail-on-client.git", rev = "master"}
+sail-on-client = {git = "https://github.com/darpa-sail-on/sail-on-client.git", rev = "add-hint-for-given-detection"}
 einops = ">=0.3"
 torch = "==1.8.1"
 torchvision = "==0.9.1"
@@ -21,6 +21,7 @@ av = "^8.0.3"
 vast = {git = "https://github.com/prijatelj/vast.git", rev = "main"}
 exputils = "^0.1.5"
 pkbar = "^0.5"
+pyflann-py3 = "^0.1.0"
 
 [tool.poetry.dev-dependencies]
 
@@ -34,3 +35,4 @@ build-backend = "poetry.core.masonry.api"
 [tool.poetry.plugins."smqtk_plugins"]
 timesformer = "timesformer.timesformer_adapter"
 timesformer_rd = "timesformer.timesformer_rd_adapter"
+timesformer_detection_feedback = "timesformer.timesformer_with_detection_feedback_adapter"
