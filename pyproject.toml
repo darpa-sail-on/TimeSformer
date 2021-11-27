@@ -6,7 +6,7 @@ authors = ["Your Name <you@example.com>"]
 
 [tool.poetry.dependencies]
 python = ">=3.7,<3.11"
-sail-on-client = {git = "https://github.com/darpa-sail-on/sail-on-client.git", rev = "add-hint-for-given-detection"}
+sail-on-client = {git = "https://github.com/darpa-sail-on/sail-on-client.git", rev = "master"}
 einops = ">=0.3"
 torch = "==1.8.1"
 torchvision = "==0.9.1"
