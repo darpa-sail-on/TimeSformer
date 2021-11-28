@@ -1158,8 +1158,8 @@ dev = ["pre-commit", "black", "flake8"]
 [package.source]
 type = "git"
 url = "https://github.com/prijatelj/vast.git"
-reference = "main"
-resolved_reference = "f0368090a79af4ab0b60a0dde97c92d823dfc458"
+reference = "update-atol-precision"
+resolved_reference = "d88e2e2920565adce81c4c3e958bf7ccebeac42c"
 
 [[package]]
 name = "werkzeug"
@@ -1201,7 +1201,7 @@ tensorboard_video_visualization = []
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.7,<3.11"
-content-hash = "104026a153b0f9d97cac0cae05db0364592dad2fdc22c62e2f30ee9e3e6a5e90"
+content-hash = "76537c4169f5e054f9a19f116efd51c42d923245b10639860c07897939373f9c"
 
 [metadata.files]
 absl-py = [
