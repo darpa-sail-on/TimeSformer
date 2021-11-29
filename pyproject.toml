@@ -18,9 +18,10 @@ opencv-python = "^4.5.4.58"
 tensorboard = "^2.7.0"
 fvcore = "^0.1.5"
 av = "^8.0.3"
-vast = {git = "https://github.com/prijatelj/vast.git", rev = "main"}
+vast = {git = "https://github.com/prijatelj/vast.git", rev = "update-atol-precision"}
 exputils = "^0.1.5"
 pkbar = "^0.5"
+pyflann-py3 = "^0.1.0"
 
 [tool.poetry.dev-dependencies]
 
@@ -34,3 +35,4 @@ build-backend = "poetry.core.masonry.api"
 [tool.poetry.plugins."smqtk_plugins"]
 timesformer = "timesformer.timesformer_adapter"
 timesformer_rd = "timesformer.timesformer_rd_adapter"
+timesformer_detection_feedback = "timesformer.timesformer_with_detection_feedback_adapter"

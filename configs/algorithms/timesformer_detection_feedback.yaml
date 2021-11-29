@@ -1,0 +1,41 @@
+timesformer:
+  smqtk:
+    class: TimesformerWithDetectionFeedbackAdapter
+    config:
+      fe_params:
+        model_name: vit_base_patch16_224
+        num_classes: 29
+        num_perspectives: 5
+        num_locations: 2
+        num_relations: 52
+        arch: vit
+        checkpoint_file_path: ${model_root}/checkpoint_epoch_00015.pyth
+        num_gpus: 1
+      kl_params:
+        window_size: 100
+        mu_train: 1.0
+        sigma_train: 0.9798755511726752
+        KL_threshold: 1.9159339787124976
+        decay_rate: 0.6
+        num_rounds: 40
+        threshold_scale: 5.0
+      evm_params:
+        model_path: ${model_root}/timesformer_feats_evm.hdf5
+        distance_function: 'cosine'
+        gpu_idx: 0
+      adaptation_params:
+        min_samples: 50
+        known_features: ${model_root}/timesformer_train_feats.bin
+      dataloader_params:
+        num_workers: 12
+        pin_memory: True
+        num_ensemble_views: 1
+        num_spatial_crops: 3
+        batch_size: 1
+        n_threads: 0
+        num_frames: 8
+        sampling_rate: 32
+        train_jitter_scales: [256, 320]
+        test_crop_size: 224
+        input_channel_num: [3]
+      detection_threshold: 0.5
