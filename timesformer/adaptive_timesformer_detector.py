@@ -358,6 +358,14 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
 
         # TODO add switch to classify from TimeSformer, FineTune, or EVM
 
+
+        # TODO absolutely Disgusting hack, sorry guys
+        FVs = list(FVs)
+        for x in range(len(FVs)):
+            if not torch.is_tensor(FVs[x]):
+                FVs[x] = torch.Tensor(FVs[x])
+        # End of disgusting hack, lol
+
         fine_tune_preds = self.owhar.fine_tune.predict(
             torch.stack(FVs, axis=0),
         )
