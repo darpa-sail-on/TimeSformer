@@ -254,10 +254,10 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
 
         kl = np.zeros((number_of_evaluation, average_of_known_batch))
 
-        with Pool(n_cpu) as p:
-            for j in range(average_of_known_batch):
-                arr = (number_of_evaluation * j) + np.arange(number_of_evaluation)
-                kl[:, j] = p.map(task, arr)
+
+        for j in range(average_of_known_batch):
+            arr = (number_of_evaluation * j) + np.arange(number_of_evaluation)
+            kl[:, j] = task(arr)
 
         kl_evals = np.amax(kl, axis=1)
 
