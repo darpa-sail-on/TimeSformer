@@ -107,12 +107,23 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
         ]
 
         # Must store the train features and labels for updating fine tuning.
+
+
         self.train_features = torch.load(
             feedback_interpreter_params['train_feature_path'],
         )
+
+        for x in range(len(self.train_features['feats'])):
+            limit = int(self.train_features['feats'][x].shape[0]*.10)
+            self.train_features['feats'][x] = self.train_features['feats'][x][:limit, :]
+            self.train_features['labels'][x] = self.train_features['labels'][x][:limit]
+
         self.train_labels = torch.nn.functional.one_hot(
             torch.cat(self.train_features['labels']).type(torch.long)
         ).float()
+        print(self.train_features['feats'][0].shape)
+
+            # print(self.train_features['feats'][[x]:int(len(self.train_features['feats']))])
         self.train_features = torch.cat(self.train_features['feats'])
 
         # TODO Store the val features and labels for updating fine tuning.
