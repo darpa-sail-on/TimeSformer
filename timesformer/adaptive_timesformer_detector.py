@@ -364,11 +364,11 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
         FVs = list(FVs)
         for x in range(len(FVs)):
             if not torch.is_tensor(FVs[x]):
-                FVs[x] = torch.Tensor(FVs[x])
+                FVs[x] = torch.Tensor(FVs[x][1])
 
         # End of disgusting hack, lol
-        print("FVs: " + str(len(FVs)) + " : " + str(FVs[0].shape))
-        temp = torch.cat(FVs, axis=0).to(torch.device('cuda:0'))
+        # print("FVs: " + str(len(FVs)) + " : " + str(FVs[0].shape))
+        temp = torch.stack(FVs, axis=0).to(torch.device('cuda:0'))
         print(temp.shape)
         fine_tune_preds = self.owhar.fine_tune.predict(
             temp,
@@ -522,22 +522,35 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
         )
 
         # Get the feedback as label text and interpret the feedback
+        #
+        raw_feedback_labels = feedback_df[self.feedback_columns].values
         feedback_labels = self.owhar.feedback_interpreter.interpret(
-            feedback_df[self.feedback_columns].values,
+            raw_feedback_labels,
         )
-
-        features_arr = np.array(list(self.round_feature_dict.values()))
-
+        feedback_labels = torch.mean(feedback_labels,1)
+        features_arr = []
+        for x in feedback_df['id']:
+            features_arr.append(torch.Tensor(self.round_feature_dict[x])[1,:])
+        print(features_arr)
         # Combine the train data with the feedback data for update
+        # print(round_feature_dict[feedback_df['id'].values])
+        print(self.train_features.shape)
+        print(torch.stack(features_arr).to(self.train_features.device).shape)
+
         self.train_features = torch.cat([
             self.train_features,
-            features_arr[feedback_df['id'].values], # id values are indeices
+            torch.stack(features_arr).to(self.train_features.device), # id values are indeices
         ])
-        self.train_labels = torch.cat([self.train_labels, feedback_labels])
+
+
+        print(self.train_labels.shape)
+        print(feedback_labels.shape)
+
+        self.train_labels = torch.cat([self.train_labels.to(feedback_labels.device), feedback_labels])
 
         # Incremental fits on all prior train and saved feedback
         self.owhar.fit_increment(
-            self.train_labels,
+            self.train_features,
             self.train_labels,
             is_feature_repr=True,
             #val_input_samples,
