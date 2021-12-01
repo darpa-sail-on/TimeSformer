@@ -114,7 +114,7 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
         )
 
         for x in range(len(self.train_features['feats'])):
-            limit = int(self.train_features['feats'][x].shape[0]*.10)
+            limit = int(self.train_features['feats'][x].shape[0]*.80)
             self.train_features['feats'][x] = self.train_features['feats'][x][:limit, :]
             self.train_features['labels'][x] = self.train_features['labels'][x][:limit]
 
@@ -321,7 +321,8 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
         self.max_probabilities = torch.max(self.class_probabilities, axis=2)[0]
 
         self.round_feature_dict = feature_dict
-
+        for x in self.round_feature_dict:
+            self.round_feature_dict[x] = torch.Tensor(self.round_feature_dict[x])
         if round_id == 0:
             detections = torch.zeros(len(image_names))
         else:
@@ -376,7 +377,7 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
         for x in range(len(FVs)):
             if not torch.is_tensor(FVs[x]):
                 FVs[x] = torch.Tensor(FVs[x][1])
-
+            else: FVs[x] = FVs[x][1]
         # End of disgusting hack, lol
         # print("FVs: " + str(len(FVs)) + " : " + str(FVs[0].shape))
         temp = torch.stack(FVs, axis=0).to(torch.device('cuda:0'))
@@ -388,6 +389,8 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
         #self.logger.info(f"EVM scores: {torch.argmax(known_probs, dim=1)}")
         self.logger.info(f"Acc: {self.acc}")
         pu = torch.zeros(fine_tune_preds.shape[0],).view(-1, 1).to(torch.device('cuda:0'))
+        print(fine_tune_preds.shape)
+        print(pu.shape)
         all_rows_tensor = torch.cat((fine_tune_preds, pu), 1)
         norm = torch.norm(all_rows_tensor, p=1, dim=1)
         normalized_tensor = all_rows_tensor/norm[:, None]
@@ -566,6 +569,8 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
         )
 
         # Handle the saving of results with updated predictor etc...
+        # print(self.owhar.known_probs)
+        # print(self.round_feature_dict)
         class_map = map(self.owhar.known_probs, self.round_feature_dict.values())
         self.class_probabilities = torch.stack(list(class_map), axis=0)
         self.max_probabilities, _ = torch.max(self.class_probabilities, axis=2)
