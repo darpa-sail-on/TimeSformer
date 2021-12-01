@@ -369,7 +369,7 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
         # End of disgusting hack, lol
         # print("FVs: " + str(len(FVs)) + " : " + str(FVs[0].shape))
         temp = torch.stack(FVs, axis=0).to(torch.device('cuda:0'))
-        print(temp.shape)
+        # print(temp.shape)
         fine_tune_preds = self.owhar.fine_tune.predict(
             temp,
         )
@@ -531,11 +531,9 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
         features_arr = []
         for x in feedback_df['id']:
             features_arr.append(torch.Tensor(self.round_feature_dict[x])[1,:])
-        print(features_arr)
         # Combine the train data with the feedback data for update
         # print(round_feature_dict[feedback_df['id'].values])
-        print(self.train_features.shape)
-        print(torch.stack(features_arr).to(self.train_features.device).shape)
+
 
         self.train_features = torch.cat([
             self.train_features,
@@ -543,8 +541,6 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
         ])
 
 
-        print(self.train_labels.shape)
-        print(feedback_labels.shape)
 
         self.train_labels = torch.cat([self.train_labels.to(feedback_labels.device), feedback_labels])
 
