@@ -114,7 +114,7 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
         )
 
         for x in range(len(self.train_features['feats'])):
-            limit = int(self.train_features['feats'][x].shape[0]*.80)
+            limit = int(self.train_features['feats'][x].shape[0]*.70)
             self.train_features['feats'][x] = self.train_features['feats'][x][:limit, :]
             self.train_features['labels'][x] = self.train_features['labels'][x][:limit]
 
