@@ -130,6 +130,7 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
             FineTune(
                 FineTuneFCANN(
                     fine_tune_params["model"]['input_size'],
+                    out_features=fine_tune_params["model"]['input_size']
                 ),
                 fine_tune_params["fit_args"],
                 device=torch.device('cuda'),
@@ -313,7 +314,7 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
         if round_id == 0:
             detections = torch.zeros(len(image_names))
         else:
-            detections = self.owhar.novelty_detect.detect(
+            detections = self.owhar.novelty_detector.detect(
                 self.max_probabilities,
                 True,
                 self.logger,
@@ -364,19 +365,19 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
         for x in range(len(FVs)):
             if not torch.is_tensor(FVs[x]):
                 FVs[x] = torch.Tensor(FVs[x])
+
         # End of disgusting hack, lol
-
+        print("FVs: " + str(len(FVs)) + " : " + str(FVs[0].shape))
+        temp = torch.cat(FVs, axis=0).to(torch.device('cuda:0'))
+        print(temp.shape)
         fine_tune_preds = self.owhar.fine_tune.predict(
-            torch.stack(FVs, axis=0),
+            temp,
         )
-
         self.logger.info(f"Softmax scores: {torch.argmax(fine_tune_preds, dim=1)}")
         #self.logger.info(f"EVM scores: {torch.argmax(known_probs, dim=1)}")
         self.logger.info(f"Acc: {self.acc}")
-
-        pu = torch.zeros(fine_tune_preds.shape[0]).view(-1, 1)
+        pu = torch.zeros(fine_tune_preds.shape[0],).view(-1, 1).to(torch.device('cuda:0'))
         all_rows_tensor = torch.cat((fine_tune_preds, pu), 1)
-
         norm = torch.norm(all_rows_tensor, p=1, dim=1)
         normalized_tensor = all_rows_tensor/norm[:, None]
 
