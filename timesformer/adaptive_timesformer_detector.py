@@ -493,7 +493,7 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
             return np.clip(detection_threshold, 0.0, 1.0), data_frame
         return np.clip(detection_threshold, 0.0, 1.0)
 
-    def novelty_adaption(self, round_id):
+    def novelty_adaptation(self, round_id):
         """
         Novelty adaptation
         :param round_id: round id in a test
