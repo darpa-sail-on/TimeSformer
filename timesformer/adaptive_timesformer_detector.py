@@ -123,7 +123,7 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
 
         temp = torch.cat(self.train_features['labels'])
         for x in range(len(temp)):
-            print(f"{temp[x]} to  {str(CLASS_MAPPING[int(temp[x])])}")
+            # print(f"{temp[x]} to  {str(CLASS_MAPPING[int(temp[x])])}")
             temp[x] = CLASS_MAPPING[int(temp[x])]
 
         self.train_labels = torch.nn.functional.one_hot(
@@ -131,7 +131,7 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
         ).float()
 
 
-        print(self.train_features['feats'][0].shape)
+        # print(self.train_features['feats'][0].shape)
 
             # print(self.train_features['feats'][[x]:int(len(self.train_features['feats']))])
         self.train_features = torch.cat(self.train_features['feats'])
@@ -147,6 +147,10 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
         #self.val_features = torch.cat(self.val_features['feats'])
 
         # OWHAR: FineTune, EVM, FINCH, CLIP Feedback Interpreter args
+        classlist = list(interpreter.pred_known_map.encoder)
+        # print(classlist)
+        del classlist[27]
+        # print(classlist)
         self.owhar = OWHAPredictorEVM(
             FineTune(
                 FineTuneFCANN(
@@ -159,7 +163,7 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
             ),
             ExtremeValueMachine(
                 device=torch.device("cuda:0"),
-                labels=list(interpreter.pred_known_map.encoder),
+                labels=classlist,
                 **evm_params,
             ),
             WindowedMeanKLDiv(
@@ -400,8 +404,8 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
         #self.logger.info(f"EVM scores: {torch.argmax(known_probs, dim=1)}")
         self.logger.info(f"Acc: {self.acc}")
         pu = torch.zeros(fine_tune_preds.shape[0],).view(-1, 1).to(torch.device('cuda:0'))
-        print(fine_tune_preds.shape)
-        print(pu.shape)
+        # print(fine_tune_preds.shape)
+        # print(pu.shape)
         all_rows_tensor = torch.cat((fine_tune_preds, pu), 1)
         norm = torch.norm(all_rows_tensor, p=1, dim=1)
         normalized_tensor = all_rows_tensor/norm[:, None]
@@ -549,10 +553,15 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
         # Get the feedback as label text and interpret the feedback
         #
         raw_feedback_labels = feedback_df[self.feedback_columns].values
+
         feedback_labels = self.owhar.feedback_interpreter.interpret(
             raw_feedback_labels,
         )
         feedback_labels = torch.mean(feedback_labels,1)
+        temp = torch.zeros((feedback_labels.shape[0], feedback_labels.shape[1] + 1))
+        temp[:, :27] = feedback_labels[:, :27]
+        temp[:, 28:] = feedback_labels[:, 27:]
+        feedback_labels = temp
         features_arr = []
         for x in feedback_df['id']:
             features_arr.append(torch.Tensor(self.round_feature_dict[x])[1,:])
