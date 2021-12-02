@@ -151,7 +151,8 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
             FineTune(
                 FineTuneFCANN(
                     fine_tune_params["model"]['input_size'],
-                    out_features=fine_tune_params["model"]['input_size']
+                    out_features=fine_tune_params["model"]['input_size'],
+                    n_classes=30
                 ),
                 fine_tune_params["fit_args"],
                 device=torch.device('cuda'),
