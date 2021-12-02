@@ -120,13 +120,13 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
             limit = int(self.train_features['feats'][x].shape[0]*.30)
             self.train_features['feats'][x] = self.train_features['feats'][x][:limit, :]
             self.train_features['labels'][x] = self.train_features['labels'][x][:limit]
-
-        self.train_labels = torch.nn.functional.one_hot(
-            torch.cat(self.train_features['labels']).type(torch.long)
-        ).float()
         for x in range(len(self.train_features['labels'])):
             print(str(self.train_features['labels'][x])+" to " + str(CLASS_MAPPING[self.train_features['labels'][x]]))
             self.train_features['labels'][x] = CLASS_MAPPING[self.train_features['labels'][x]]
+        self.train_labels = torch.nn.functional.one_hot(
+            torch.cat(self.train_features['labels']).type(torch.long)
+        ).float()
+
 
         print(self.train_features['feats'][0].shape)
 
