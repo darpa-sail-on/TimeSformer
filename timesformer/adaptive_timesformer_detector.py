@@ -123,9 +123,8 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
 
         temp = torch.cat(self.train_features['labels'])
         for x in range(len(temp)):
-            print(temp[x]+" to " + str(CLASS_MAPPING[int(tenp[x])]))
+            print(f"{temp[x]} to  {str(CLASS_MAPPING[int(temp[x])])}")
             temp[x] = CLASS_MAPPING[int(temp[x])]
-
 
         self.train_labels = torch.nn.functional.one_hot(
             temp.type(torch.long)
