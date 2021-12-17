@@ -1,0 +1,58 @@
+# The TimeSformer within Open World Learning framework with EVM and feedback
+timesformer:
+  smqtk:
+    class: AdaptiveTimesformerAdapter
+    config:
+      fe_params:
+        model_name: vit_base_patch16_224
+        num_classes: 29
+        num_perspectives: 5
+        num_locations: 2
+        num_relations: 52
+        arch: vit
+        checkpoint_file_path: ${model_root}/checkpoint_epoch_00015.pyth
+        num_gpus: 1
+      kl_params:
+        window_size: 100
+        mu_train: 1.0
+        sigma_train: 0.1242729408792351
+        KL_threshold: 5.365822113508410
+        decay_rate: 0.6
+        num_rounds: 40
+        threshold_scale: 3.0
+        feedback_weight: 1.0 # binary novelty feedback
+      evm_params:
+        tail_size: 4000 # Cannot exceed half of the number of training samples
+        distance_metric: 'cosine'
+        distance_multiplier: 1.0
+        #distance_threshold: 0.45
+        cover_threshold: 0.7
+        #gpu_idx: 0 # if update with prijatelj vast, this can be device: 'cuda:0'
+      fine_tune_params:
+        model:
+          input_size: 768
+        fit_args:
+          batch_size: 1000
+          epochs: 20
+      feedback_interpreter_params:
+        clip_path: "${model_root}/models/clip/clip_ViT-B_32.pt"
+        clip_templates: "${model_root}/data/clip/k700_templates.txt"
+        pred_known_map: "${model_root}/data/par/ordered_par_classes.txt"
+        pred_label_encs: "${model_root}/data/par/clip_par_ontology_idx_sorted_label_text_encs.pt"
+        feedback_known_map: "${model_root}/data/kinetics/kinetics600/unique_sorted_actions.csv"
+        feedback_label_encs: "${model_root}/data/kinetics/kinetics600/clip_sorted_label_text_encs.pt"
+        train_feature_path: "${model_root}/timesformer_train_feats.bin"
+        thresh_set_data: "${model_root}/timesformer_test_feats.bin"
+      dataloader_params:
+        num_workers: 12
+        pin_memory: True
+        num_ensemble_views: 1
+        num_spatial_crops: 3
+        batch_size: 1
+        n_threads: 0
+        num_frames: 8
+        sampling_rate: 32
+        train_jitter_scales: [256, 320]
+        test_crop_size: 224
+        input_channel_num: [3]
+      detection_threshold: 0.5

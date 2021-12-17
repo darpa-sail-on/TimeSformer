@@ -23,6 +23,11 @@ exputils = "^0.1.5"
 pkbar = "^0.5"
 pyflann-py3 = "^0.1.0"
 hydra-submitit-launcher = "^1.1.6"
+ftfy = "^6.0.3"
+regex = "^2021.11.10"
+tqdm = "^4.62.3"
+Cython = "^0.29.26"
+clip = {git = "https://github.com/openai/CLIP.git", rev = "main"}
 
 [tool.poetry.dev-dependencies]
 
@@ -37,3 +42,4 @@ build-backend = "poetry.core.masonry.api"
 timesformer = "timesformer.timesformer_adapter"
 timesformer_rd = "timesformer.timesformer_rd_adapter"
 timesformer_detection_feedback = "timesformer.timesformer_with_detection_feedback_adapter"
+adaptive_timesformer = "timesformer.adaptive_timesformer_adapter"
