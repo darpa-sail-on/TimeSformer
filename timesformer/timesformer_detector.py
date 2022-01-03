@@ -9,39 +9,10 @@ from fvcore.common.config import CfgNode
 from vast.opensetAlgos.extreme_value_machine import ExtremeValueMachine
 
 import timesformer.utils.checkpoint as cu
+from timesformer.models import build_model
+from timesformer.datasets.ta2 import TimesformerEval
 from timesformer.config.defaults import get_cfg
 from timesformer.utils.realign_logits import realign_logits
-
-
-CLASS_MAPPING = {'Brushing': 15,
-                 'Swimming': 1,
-                 'Bowling': 28,
-                 'Riding machine': 6,
-                 'Lifting': 29,
-                 'Throwing': 3,
-                 'Cooking': 20,
-                 'Applyingmakeup': 22,
-                 'Walking': 23,
-                 'Racquet sports': 9,
-                 'Skiing': 7,
-                 'Climbing': 10,
-                 'Playing wind instruments': 11,
-                 'Playing percussion instruments': 13,
-                 'Playing string instruments': 14,
-                 'Boating': 17,
-                 'Skating': 18,
-                 'Riding animals': 5,
-                 'Jumping': 8,
-                 'Washing': 19,
-                 'Carpentry': 24,
-                 'Playing brass instruments': 12,
-                 'Wrestling': 16,
-                 'Talking': 26,
-                 'Splitting': 4,
-                 'Cutting': 21,
-                 'Hammering': 0,
-                 'Standing': 25,
-                 'Running': 2}
 
 
 class TimesformerDetector:
@@ -262,15 +233,15 @@ class TimesformerDetector:
         self.logger.info(f"Softmax scores: {torch.argmax(softmax_scores, dim=1)}")
         self.logger.info(f"EVM scores: {torch.argmax(known_probs, dim=1)}")
         self.logger.info(f"Acc: {self.acc}")
-        #if self.has_world_changed:
-        #    scaled_m = torch.ones(m.shape).double()
-        #    scaled_m[m >= self.detection_threshold] = \
-        #        (m[m >= self.detection_threshold] - 0.001)
-        #    scaled_softmax = torch.einsum("ij,i->ij", softmax_scores, scaled_m)
-        #    all_rows_tensor = torch.cat((scaled_softmax, m.view(-1, 1)), 1)
-        #else:
-        pu = pu.view(-1, 1)
-        all_rows_tensor = torch.cat((softmax_scores, pu), 1)
+        if self.has_world_changed:
+            scaled_m = torch.ones(m.shape).double()
+            scaled_m[m >= self.detection_threshold] = \
+                (m[m >= self.detection_threshold] - 0.001)
+            scaled_softmax = torch.einsum("ij,i->ij", softmax_scores, scaled_m)
+            all_rows_tensor = torch.cat((scaled_softmax, m.view(-1, 1)), 1)
+        else:
+            pu = pu.view(-1, 1)
+            all_rows_tensor = torch.cat((softmax_scores, pu), 1)
         norm = torch.norm(all_rows_tensor, p=1, dim=1)
         normalized_tensor = all_rows_tensor/norm[:, None]
         df = pd.DataFrame(zip(image_names, *normalized_tensor.t().tolist()))
