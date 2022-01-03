@@ -1,6 +1,7 @@
 defaults:
   - default
   - protocol/save_features@protocol.smqtk.config: elementwise
+  - override /harness@protocol.smqtk.config.harness: par
   - _self_
 
 server_url: ???
