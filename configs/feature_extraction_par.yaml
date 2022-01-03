@@ -17,6 +17,6 @@ protocol:
       feature_dir: ???
       harness:
         smqtk:
-          class: PARHarness
+          class: ParHarness
           config:
             url: ${server_url}
