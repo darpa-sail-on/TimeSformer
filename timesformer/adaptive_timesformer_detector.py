@@ -168,7 +168,7 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
             ),
             WindowedMeanKLDiv(
                 detection_threshold=detection_threshold,
-                kl_threshold=kl_params["KL_threshold"],
+                kl_threshold=kl_params["KL_threshold"]*kl_params["threshold_scale"],
                 kl_threshold_decay_rate=kl_params["decay_rate"],
                 mean_train=kl_params["mu_train"],
                 std_dev_train=kl_params["sigma_train"],
@@ -204,7 +204,7 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
                 self.train_features,
                 test_features['known'],
                 test_features['unknown'],
-            )
+            ) * kl_params["threshold_scale"]
 
         # TODO characterization requires an owhar per subtask.
         self.feedback_obj = feedback_obj
