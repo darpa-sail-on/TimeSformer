@@ -1,6 +1,6 @@
 timesformer:
   smqtk:
-    class: TimesformerAdapter
+    class: TimesformerWithDetectionFeedbackAdapter
     config:
       fe_params:
         model_name: vit_base_patch16_224
@@ -18,14 +18,14 @@ timesformer:
         KL_threshold: 1.9159339787124976
         decay_rate: 0.6
         num_rounds: 40
-        threshold_scale: 3.0
+        threshold_scale: 5.0
       evm_params:
         model_path: ${model_root}/timesformer_feats_evm.hdf5
         distance_function: 'cosine'
         gpu_idx: 0
-      characterization_params:
-        clustering_type: FINCH
-        number_of_unknown_to_strat_clustering: 50
+      adaptation_params:
+        min_samples: 50
+        known_features: ${model_root}/timesformer_train_feats.bin
       dataloader_params:
         num_workers: 12
         pin_memory: True

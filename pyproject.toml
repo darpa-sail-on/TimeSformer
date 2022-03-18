@@ -18,6 +18,16 @@ opencv-python = "^4.5.4.58"
 tensorboard = "^2.7.0"
 fvcore = "^0.1.5"
 av = "^8.0.3"
+vast = {git = "https://github.com/prijatelj/vast.git", rev = "update-atol-precision"}
+exputils = "^0.1.5"
+pkbar = "^0.5"
+pyflann-py3 = "^0.1.0"
+hydra-submitit-launcher = "^1.1.6"
+ftfy = "^6.0.3"
+regex = "^2021.11.10"
+tqdm = "^4.62.3"
+Cython = "^0.29.26"
+clip = {git = "https://github.com/openai/CLIP.git", rev = "main"}
 
 [tool.poetry.dev-dependencies]
 
@@ -25,9 +35,11 @@ av = "^8.0.3"
 tensorboard_video_visualization = ["moviepy"]
 
 [build-system]
-requires = ["poetry-core>=1.0.0"]
+requires = ["poetry-core>=1.0.0", "torch>=1.8.1"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.plugins."smqtk_plugins"]
 timesformer = "timesformer.timesformer_adapter"
+timesformer_rd = "timesformer.timesformer_rd_adapter"
+timesformer_detection_feedback = "timesformer.timesformer_with_detection_feedback_adapter"
 adaptive_timesformer = "timesformer.adaptive_timesformer_adapter"

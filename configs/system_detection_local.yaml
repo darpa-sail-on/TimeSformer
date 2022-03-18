@@ -1,6 +1,7 @@
 defaults:
   - default
-  - protocol/save_features@protocol.smqtk.config: elementwise
+  - protocol/use_features@protocol.smqtk.config: non_consolidated
+  - protocol/eval@protocol.smqtk.config: without_reaction
   - _self_
 
 test_root: ???
@@ -18,7 +19,7 @@ protocol:
         smqtk:
           class: LocalHarness
           config:
-            data_dir: ${test_root}
+            data_dir: ${test_root}/data
             result_dir: ${test_root}/results
-            gt_dir: ${test_root}/data/activity_recognition
-            gt_config: ${test_root}/data/activity_recognition/activity_recognition.json
+            gt_dir: ${test_root}/data/OND/activity_recognition
+            gt_config: ${test_root}/data/OND/activity_recognition/activity_recognition.json

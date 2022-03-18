@@ -15,9 +15,10 @@ their [paper](https://arxiv.org/pdf/2102.05095.pdf).
     git clone https://github.com/facebookresearch/TimeSformer
     git clone https://github.com/darpa-sail-on/Sail_On_Evaluate.git
     git clone https://github.com/darpa-sail-on/Sail-On-API.git
+    git clone https://github.com/darpa-sail-on/ND-Activity-Recognition-Feeback.git
    ```
-   This would create TimeSformer,
-   Sail-On-API and sail-on-client directories in your working directory
+   This would create TimeSformer, Sail-On-API, ND-Activity-Recognition-Feeback,
+   and sail-on-client directories in your working directory
 
 3. Create a virtual environment and install the components using the following commands:
    ```
@@ -55,7 +56,7 @@ their [paper](https://arxiv.org/pdf/2102.05095.pdf).
 
 4. Install Additional dependencies using:
    ```
-   pip install ../Sail-On-API/ ../Sail_On_Evaluate/
+   pip install ../Sail-On-API/ ../Sail_On_Evaluate/ ../ND-Activity-Recognition-Feeback
    ```
 
 # Usage
@@ -87,6 +88,140 @@ their [paper](https://arxiv.org/pdf/2102.05095.pdf).
                                      protocol.smqtk.config.feature_dir=<root directory where features are saved> \
                                      algorithms@protocol.smqtk.config.algorithms=[timesformer_base] \
                                      protocol.smqtk.config.test_ids=[<comma seperated list of test ids>]
+   ```
+
+4. [Optional] To use slurm with the feature extraction use the following command
+   ```
+    HYDRA_FULL_ERROR=1 sail-on-client --config-dir configs/ \
+                                      --config-name feature_extraction_local \
+                                      --multirun protocol.smqtk.config.test_ids=["OND.9.99999.0"],["OND.9.99999.1"],["OND.9.99999.2"],["OND.9.99999.3"],["OND.9.99999.4"],["OND.9.99999.5"],["OND.9.99999.6"],["OND.9.99999.7"] \
+                                      test_root=/data/datasets/m24-activity-test/feature_extraction_tests \
+                                      protocol.smqtk.config.dataset_root=/data/datasets/m24-activity-test/1115_2021 \
+                                      model_root=/home/khq.kitware.com/ameya.shringi/models/timesformer-m24 \
+                                      protocol.smqtk.config.feature_dir=/home/khq.kitware.com/ameya.shringi/features/timesformer-m24 \
+                                      algorithms@protocol.smqtk.config.algorithms=[timesformer_base] \
+                                      hydra/launcher=veydrus \
+
+### System Detection
+
+1. Download the features from [google drive](https://drive.google.com/drive/folders/15mbBTOUtfV47EziACEPcc2gXqzKFuKpI?usp=sharing)
+
+2. Download the evm model (HDF5 File) from [google drive](https://drive.google.com/drive/folders/1NbYqoOBoSl8iUi-tHy0uE1AkRkxzkMki)
+
+3. With the evaluation server use the following command
+   ```
+     HYDRA_FULL_ERROR=1 sail-on-client --config-dir configs/ \
+                                       --config-name system_detection_par \
+                                       server_url=<url for server> \
+                                       model_root=<root directory where models are stored> \
+                                       protocol.smqtk.config.feature_dir=<root directory where features are stored> \
+                                       protocol.smqtk.config.dataset_root=<root directory of vidoes> \
+                                       algorithms@protocol.smqtk.config.algorithms=[timesformer_base] \
+                                       protocol.smqtk.config.test_ids=[<comma seperated test ids>]
+   ```
+
+4. With files on the machine using the following command
+   ```
+     HYDRA_FULL_ERROR=1 sail-on-client --config-dir configs/ \
+                                       --config-name system_detection_local \
+                                       test_root=<root directory with tests> \
+                                       protocol.smqtk.config.feature_dir=<root directory with features> \
+                                       protocol.smqtk.config.dataset_root=<root directory with videos> \
+                                       algorithms@protocol.smqtk.config.algorithms=[timesformer_base]
+                                       protocol.smqtk.config.test_ids=[<comma seperate test ids>]
+   ```
+
+### Given Detection
+
+1. Download the features from [google drive](https://drive.google.com/drive/folders/15mbBTOUtfV47EziACEPcc2gXqzKFuKpI?usp=sharing)
+
+2. Download the evm model (HDF5 File) from [google drive](https://drive.google.com/drive/folders/1NbYqoOBoSl8iUi-tHy0uE1AkRkxzkMki)
+
+3. With the evaluation server use the following command
+   ```
+     HYDRA_FULL_ERROR=1 sail-on-client --config-dir configs/ \
+                                       --config-name given_detection_par \
+                                       server_url=<url for server> \
+                                       model_root=<root directory where models are stored> \
+                                       protocol.smqtk.config.feature_dir=<root directory where features are stored> \
+                                       protocol.smqtk.config.dataset_root=<root directory of vidoes> \
+                                       algorithms@protocol.smqtk.config.algorithms=[timesformer_rd] \
+                                       protocol.smqtk.config.test_ids=[<comma seperated test ids>]
+   ```
+
+4. With files on the machine using the following command
+   ```
+     HYDRA_FULL_ERROR=1 sail-on-client --config-dir configs/ \
+                                       --config-name given_detection_local \
+                                       test_root=<root directory with tests> \
+                                       protocol.smqtk.config.feature_dir=<root directory with features> \
+                                       protocol.smqtk.config.dataset_root=<root directory with videos> \
+                                       algorithms@protocol.smqtk.config.algorithms=[timesformer_rd]
+                                       protocol.smqtk.config.test_ids=[<comma seperate test ids>]
+   ```
+
+### System Detection With Classification Feedback
+1. Download the features from [google drive](https://drive.google.com/drive/folders/15mbBTOUtfV47EziACEPcc2gXqzKFuKpI?usp=sharing)
+
+2. Download the evm model (HDF5 File) from [google drive](https://drive.google.com/drive/folders/1NbYqoOBoSl8iUi-tHy0uE1AkRkxzkMki)
+
+3. Download additional file available in the following links:
+   - [clip path](https://drive.google.com/file/d/1F_xBuDaGY7aF1qIA5bULbZX4WQHOkolf/view?usp=sharing)
+   - [clip templates](https://drive.google.com/file/d/1ZGNeAjpkVTh7VMwQ2s6IsWv8yzcnnjGs/view?usp=sharing)
+   - [pred known map](https://drive.google.com/file/d/1lK2uKoKYvnspWoVOynOS41d9gQ-XPYXM/view?usp=sharing)
+   - [pred label encs](https://drive.google.com/file/d/1dLIVIJ4jPyN911afYGID23WM01oSf3Ov/view?usp=sharing)
+   - [feedback known map](https://drive.google.com/file/d/1Se601WezeQZrPqvYLmamjcZ03J17h56d/view?usp=sharing)
+   - [feedback label encs](https://drive.google.com/file/d/1p1hNqV8qI9Qck6IVnRH_bWgsDlH66gPh/view?usp=sharing)
+
+3. With the evaluation server use the following command
+   ```
+     HYDRA_FULL_ERROR=1 sail-on-client --config-dir configs/ \
+                                       --config-name system_detection_classification_feedback_par \
+                                       server_url=<url for server> \
+                                       model_root=<root directory where models are stored> \
+                                       protocol.smqtk.config.feature_dir=<root directory where features are stored> \
+                                       protocol.smqtk.config.dataset_root=<root directory of vidoes> \
+                                       algorithms@protocol.smqtk.config.algorithms=[timesformer_feedback] \
+                                       protocol.smqtk.config.test_ids=[<comma seperated test ids>]
+   ```
+
+4. With files on the machine using the following command
+   ```
+     HYDRA_FULL_ERROR=1 sail-on-client --config-dir configs/ \
+                                       --config-name system_detection_classification_feedback_local \
+                                       test_root=<root directory with tests> \
+                                       protocol.smqtk.config.feature_dir=<root directory with features> \
+                                       protocol.smqtk.config.dataset_root=<root directory with videos> \
+                                       algorithms@protocol.smqtk.config.algorithms=[timesformer_feedback]
+                                       protocol.smqtk.config.test_ids=[<comma seperate test ids>]
+   ```
+
+### Given Detection With Detection Feedback
+1. Download the features from [google drive](https://drive.google.com/drive/folders/15mbBTOUtfV47EziACEPcc2gXqzKFuKpI?usp=sharing)
+
+2. Download the evm model (HDF5 File) from [google drive](https://drive.google.com/drive/folders/1NbYqoOBoSl8iUi-tHy0uE1AkRkxzkMki)
+
+3. With the evaluation server use the following command
+   ```
+     HYDRA_FULL_ERROR=1 sail-on-client --config-dir configs/ \
+                                       --config-name given_detection_detection_feedback_par \
+                                       server_url=<url for server> \
+                                       model_root=<root directory where models are stored> \
+                                       protocol.smqtk.config.feature_dir=<root directory where features are stored> \
+                                       protocol.smqtk.config.dataset_root=<root directory of vidoes> \
+                                       algorithms@protocol.smqtk.config.algorithms=[timesformer_detection_feedback] \
+                                       protocol.smqtk.config.test_ids=[<comma seperated test ids>]
+   ```
+
+4. With files on the machine using the following command
+   ```
+     HYDRA_FULL_ERROR=1 sail-on-client --config-dir configs/ \
+                                       --config-name given_detection_detection_feedback_local \
+                                       test_root=<root directory with tests> \
+                                       protocol.smqtk.config.feature_dir=<root directory with features> \
+                                       protocol.smqtk.config.dataset_root=<root directory with videos> \
+                                       algorithms@protocol.smqtk.config.algorithms=[timesformer_detection_feedback]
+                                       protocol.smqtk.config.test_ids=[<comma seperate test ids>]
    ```
 
 # Training Network
