@@ -117,7 +117,6 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
 
         CLASS_MAPPING = [15,1,28,6,29,3, 20,22,23,9,7,10,11,13,14,17,18,5,8,19,24,12,16,26,4,21,0,25,2]
 
-
         for x in range(len(self.train_features['feats'])):
             limit = int(self.train_features['feats'][x].shape[0]*.60)
             self.train_features['feats'][x] = self.train_features['feats'][x][:limit, :]
