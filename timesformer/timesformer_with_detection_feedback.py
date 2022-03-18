@@ -133,5 +133,3 @@ class TimesformerWithDetectionFeedback(TimesformerWithRedlightDetector):
         known_features = torch.cat(known_features)
         self.discover_evm.fit(feature_tensor, feature_labels, extra_negatives=known_features)
         self.logger.info(f"{logging_header}: Finished Retraining EVM")
-
-
