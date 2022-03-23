@@ -24,10 +24,13 @@ timesformer:
       evm_params:
         tail_size: 4000 # Cannot exceed half of the number of training samples
         distance_metric: 'cosine'
-        distance_multiplier: 1.0
-        #distance_threshold: 0.45
+        distance_multiplier: 0.23
+        # 0.01 results in nans for kl detection.. 0.1 max is 0.2979, starts at 0.0751
+        #distance_multiplier: 0.45 # 1.0 # TODO 10.0+
         cover_threshold: 0.7
-        #gpu_idx: 0 # if update with prijatelj vast, this can be device: 'cuda:0'
+        device: 'cpu'
+        chunk_size: 1
+        dtype: 'double'
       fine_tune_params:
         model:
           input_size: 768

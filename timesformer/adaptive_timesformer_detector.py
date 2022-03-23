@@ -153,7 +153,7 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
                 device=torch.device('cuda'),
             ),
             ExtremeValueMachine(
-                device=torch.device("cuda:0"),
+                #device=torch.device("cuda:0"),
                 labels=classlist,
                 **evm_params,
             ),
