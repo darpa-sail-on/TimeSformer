@@ -1,6 +1,5 @@
 defaults:
   - default
-  - protocol/use_features@protocol.smqtk.config: non_consolidated
   - protocol/eval@protocol.smqtk.config: without_reaction
   - _self_
 
@@ -12,9 +11,8 @@ protocol:
     config:
       domain: activity_recognition
       test_ids:
-        - OND.10.90001.2100554
+        - OND.1.10001.6438158
       dataset_root: ???
-      feature_dir: ???
       harness:
         smqtk:
           class: LocalHarness
