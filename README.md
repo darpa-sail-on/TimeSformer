@@ -4,19 +4,21 @@ This repository is a fork of [TimeSformer](https://github.com/facebookresearch/T
 Please refer to the original repository for replicating their work described in
 their [paper](https://arxiv.org/pdf/2102.05095.pdf).
 
+# Prerequisites
+1. [M24 Activity Videos]: Available internally on Veydrus and Tellurak under `/data/datasets/m24-activity/all_vids`
+2. [Poetry](https://python-poetry.org/docs/#installation)
+3. [Python 3.8](https://www.python.org/downloads/release/python-380/)
+4. [CUDA 10.2](https://developer.nvidia.com/cuda-10.2-download-archive)
+
 # Installation
-
 ## Using Poetry
-
 1. Install poetry based on the instructions provided in their [documentation](https://python-poetry.org/docs/#installation).
-
 2. Clone timesformer along with additional dependencies using:
    ```
     git clone git@github.com:darpa-sail-on/TimeSformer.git
     git clone git@github.com/darpa-sail-on/ND-Activity-Recognition-Feeback.git
    ```
    This would create TimeSformer, and ND-Activity-Recognition-Feeback directories in your working directory
-
 3. Create a virtual environment and install the components using the following commands:
    ```
     poetry install
@@ -27,10 +29,9 @@ their [paper](https://arxiv.org/pdf/2102.05095.pdf).
 ## Using Conda
 1. Create a conda virtual environment and activate it:
     ```
-    conda create -n timesformer python=3.7 -y
+    conda create -n timesformer python=3.8 -y
     source activate timesformer
     ```
-
 2. Install the following packages:
 
     - torchvision: `pip install torchvision` or `conda install torchvision -c pytorch`
@@ -43,23 +44,37 @@ their [paper](https://arxiv.org/pdf/2102.05095.pdf).
     - scikit-learn: `pip install scikit-learn`
     - OpenCV: `pip install opencv-python`
     - tensorboard: `pip install tensorboard`
-
+    - sail-on-client: `pip install sail-on-client`
 3. Build the TimeSformer codebase by running:
     ```
     git clone git@github.com:darpa-sail-on/TimeSformer.git
     cd TimeSformer
     python setup.py build develop
     ```
-
 4. Install Additional dependencies using:
    ```
    pip install ../ND-Activity-Recognition-Feeback
    ```
 
 # Usage
+## Dry Run
+
+1. Download the `checkpoint_epoch_00015.pyth` from [google drive](https://drive.google.com/drive/folders/1NbYqoOBoSl8iUi-tHy0uE1AkRkxzkMki?usp=sharing)
+2. Download the evm model (HDF5 File) from [google drive](https://drive.google.com/drive/folders/1NbYqoOBoSl8iUi-tHy0uE1AkRkxzkMki)
+   in the same directory as the model from the previous step.
+3. If you are using the files on your machine use the following command
+   ```
+     HYDRA_FULL_ERROR=1 sail-on-client --config-dir <your working directory>/TimeSformer/configs/ \
+                                       --config-name dry_run_local \
+                                       test_root=<your working directory>/TimeSformer/data \
+                                       protocol.smqtk.config.dataset_root=<root directory for videos from first prerequisites> \
+                                       model_root=<root directory where models were downloaded from step 1 and 2> \
+                                       algorithms@protocol.smqtk.config.algorithms=[timesformer_base] \
+                                       protocol.smqtk.config.test_ids=[OND.0.10001.6438158]
+    ```
+
 
 ## M-24 Evaluation
-
 ### Feature Extraction
 
 1. Download the `checkpoint_epoch_00015.pyth` from [google drive](https://drive.google.com/drive/folders/1NbYqoOBoSl8iUi-tHy0uE1AkRkxzkMki?usp=sharing)
@@ -74,7 +89,6 @@ their [paper](https://arxiv.org/pdf/2102.05095.pdf).
                                      algorithms@protocol.smqtk.config.algorithms=[timesformer_base] \
                                      protocol.smqtk.config.test_ids=[<comma seperated list of test ids>]
    ```
-
 3. If you are using the files on your machine use the following command
    ```
    HYDRA_FULL_ERROR=1 sail-on-client --config-dir <your working directory>/TimeSformer/configs/ \
@@ -86,7 +100,6 @@ their [paper](https://arxiv.org/pdf/2102.05095.pdf).
                                      algorithms@protocol.smqtk.config.algorithms=[timesformer_base] \
                                      protocol.smqtk.config.test_ids=[<comma seperated list of test ids>]
    ```
-
 4. [Optional] To use slurm with the feature extraction use the following command
    ```
     HYDRA_FULL_ERROR=1 sail-on-client --config-dir configs/ \
@@ -98,13 +111,11 @@ their [paper](https://arxiv.org/pdf/2102.05095.pdf).
                                       protocol.smqtk.config.feature_dir=/home/khq.kitware.com/ameya.shringi/features/timesformer-m24 \
                                       algorithms@protocol.smqtk.config.algorithms=[timesformer_base] \
                                       hydra/launcher=veydrus \
+    ```
 
 ### System Detection
-
 1. Download the features from [google drive](https://drive.google.com/drive/folders/15mbBTOUtfV47EziACEPcc2gXqzKFuKpI?usp=sharing)
-
 2. Download the evm model (HDF5 File) from [google drive](https://drive.google.com/drive/folders/1NbYqoOBoSl8iUi-tHy0uE1AkRkxzkMki)
-
 3. With the evaluation server use the following command
    ```
      HYDRA_FULL_ERROR=1 sail-on-client --config-dir configs/ \
@@ -159,9 +170,7 @@ their [paper](https://arxiv.org/pdf/2102.05095.pdf).
 
 ### System Detection With Classification Feedback
 1. Download the features from [google drive](https://drive.google.com/drive/folders/15mbBTOUtfV47EziACEPcc2gXqzKFuKpI?usp=sharing)
-
 2. Download the evm model (HDF5 File) from [google drive](https://drive.google.com/drive/folders/1NbYqoOBoSl8iUi-tHy0uE1AkRkxzkMki)
-
 3. Download additional file available in the following links:
    - [clip path](https://drive.google.com/file/d/1F_xBuDaGY7aF1qIA5bULbZX4WQHOkolf/view?usp=sharing)
    - [clip templates](https://drive.google.com/file/d/1ZGNeAjpkVTh7VMwQ2s6IsWv8yzcnnjGs/view?usp=sharing)
@@ -169,7 +178,6 @@ their [paper](https://arxiv.org/pdf/2102.05095.pdf).
    - [pred label encs](https://drive.google.com/file/d/1dLIVIJ4jPyN911afYGID23WM01oSf3Ov/view?usp=sharing)
    - [feedback known map](https://drive.google.com/file/d/1Se601WezeQZrPqvYLmamjcZ03J17h56d/view?usp=sharing)
    - [feedback label encs](https://drive.google.com/file/d/1p1hNqV8qI9Qck6IVnRH_bWgsDlH66gPh/view?usp=sharing)
-
 3. With the evaluation server use the following command
    ```
      HYDRA_FULL_ERROR=1 sail-on-client --config-dir configs/ \
@@ -181,7 +189,6 @@ their [paper](https://arxiv.org/pdf/2102.05095.pdf).
                                        algorithms@protocol.smqtk.config.algorithms=[timesformer_feedback] \
                                        protocol.smqtk.config.test_ids=[<comma seperated test ids>]
    ```
-
 4. With files on the machine using the following command
    ```
      HYDRA_FULL_ERROR=1 sail-on-client --config-dir configs/ \
@@ -195,9 +202,7 @@ their [paper](https://arxiv.org/pdf/2102.05095.pdf).
 
 ### Given Detection With Detection Feedback
 1. Download the features from [google drive](https://drive.google.com/drive/folders/15mbBTOUtfV47EziACEPcc2gXqzKFuKpI?usp=sharing)
-
 2. Download the evm model (HDF5 File) from [google drive](https://drive.google.com/drive/folders/1NbYqoOBoSl8iUi-tHy0uE1AkRkxzkMki)
-
 3. With the evaluation server use the following command
    ```
      HYDRA_FULL_ERROR=1 sail-on-client --config-dir configs/ \
@@ -209,7 +214,6 @@ their [paper](https://arxiv.org/pdf/2102.05095.pdf).
                                        algorithms@protocol.smqtk.config.algorithms=[timesformer_detection_feedback] \
                                        protocol.smqtk.config.test_ids=[<comma seperated test ids>]
    ```
-
 4. With files on the machine using the following command
    ```
      HYDRA_FULL_ERROR=1 sail-on-client --config-dir configs/ \
