@@ -12,18 +12,15 @@ their [paper](https://arxiv.org/pdf/2102.05095.pdf).
 
 2. Clone timesformer along with additional dependencies using:
    ```
-    git clone https://github.com/facebookresearch/TimeSformer
-    git clone https://github.com/darpa-sail-on/Sail_On_Evaluate.git
-    git clone https://github.com/darpa-sail-on/Sail-On-API.git
-    git clone https://github.com/darpa-sail-on/ND-Activity-Recognition-Feeback.git
+    git clone git@github.com:darpa-sail-on/TimeSformer.git
+    git clone git@github.com/darpa-sail-on/ND-Activity-Recognition-Feeback.git
    ```
-   This would create TimeSformer, Sail-On-API, ND-Activity-Recognition-Feeback,
-   and sail-on-client directories in your working directory
+   This would create TimeSformer, and ND-Activity-Recognition-Feeback directories in your working directory
 
 3. Create a virtual environment and install the components using the following commands:
    ```
     poetry install
-    poetry run pip install ../Sail-On-API/ ../Sail_On_Evaluate/
+    poetry run pip install ../ND-Activity-Recognition-Feeback
     poetry shell
    ```
 
@@ -49,14 +46,14 @@ their [paper](https://arxiv.org/pdf/2102.05095.pdf).
 
 3. Build the TimeSformer codebase by running:
     ```
-    git clone https://github.com/facebookresearch/TimeSformer
+    git clone git@github.com:darpa-sail-on/TimeSformer.git
     cd TimeSformer
     python setup.py build develop
     ```
 
 4. Install Additional dependencies using:
    ```
-   pip install ../Sail-On-API/ ../Sail_On_Evaluate/ ../ND-Activity-Recognition-Feeback
+   pip install ../ND-Activity-Recognition-Feeback
    ```
 
 # Usage
