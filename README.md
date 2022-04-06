@@ -5,7 +5,7 @@ Please refer to the original repository for replicating their work described in
 their [paper](https://arxiv.org/pdf/2102.05095.pdf).
 
 # Prerequisites
-1. [M24 Activity Videos]: Available internally on Veydrus and Tellurak under `/data/datasets/m24-activity/all_vids`
+1. M24 Activity Videos: Available internally on Veydrus and Tellurak under `/data/datasets/m24-activity/all_vids`
 2. [Poetry](https://python-poetry.org/docs/#installation)
 3. [Python 3.8](https://www.python.org/downloads/release/python-380/)
 4. [CUDA 10.2](https://developer.nvidia.com/cuda-10.2-download-archive)
