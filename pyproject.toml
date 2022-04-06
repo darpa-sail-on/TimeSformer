@@ -5,8 +5,7 @@ description = "Fork of timesformer"
 authors = ["Your Name <you@example.com>"]
 
 [tool.poetry.dependencies]
-python = ">=3.7,<3.11"
-sail-on-client = {git = "https://github.com/darpa-sail-on/sail-on-client.git", rev = "master"}
+python = ">=3.8,<3.10"
 einops = ">=0.3"
 torch = "==1.8.1"
 torchvision = "==0.9.1"
@@ -28,6 +27,7 @@ regex = "^2021.11.10"
 tqdm = "^4.62.3"
 Cython = "^0.29.26"
 clip = {git = "https://github.com/openai/CLIP.git", rev = "main"}
+sail-on-client = "^0.25.0"
 
 [tool.poetry.dev-dependencies]
 
