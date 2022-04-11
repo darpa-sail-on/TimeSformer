@@ -1,0 +1,24 @@
+defaults:
+  - default
+  - protocol/eval@protocol.smqtk.config: without_reaction
+  - _self_
+
+test_root: ???
+model_root: ???
+
+protocol:
+  smqtk:
+    class: ONDProtocol
+    config:
+      domain: activity_recognition
+      test_ids:
+        - ???
+      dataset_root: ???
+      harness:
+        smqtk:
+          class: LocalHarness
+          config:
+            data_dir: ${test_root}
+            result_dir: ${test_root}/results
+            gt_dir: ${test_root}/OND/activity_recognition
+            gt_config: ${test_root}/OND/activity_recognition/activity_recognition.json
