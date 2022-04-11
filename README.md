@@ -49,12 +49,14 @@ their [paper](https://arxiv.org/pdf/2102.05095.pdf).
     ```
     git clone git@github.com:darpa-sail-on/TimeSformer.git
     cd TimeSformer
-    python setup.py build develop
+    python pip install .
     ```
-4. Install Additional dependencies using:
+4. Install Additional dependencies in your working directory using:
    ```
-   pip install ../ND-Activity-Recognition-Feeback
+    git clone git@github.com/darpa-sail-on/ND-Activity-Recognition-Feeback.git
+    pip install ../ND-Activity-Recognition-Feeback
    ```
+   Note: Working directory in this case is the directory where timesformer is cloned.
 
 # Usage
 ## Dry Run
