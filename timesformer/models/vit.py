@@ -178,9 +178,7 @@ class PatchEmbed(nn.Module):
 class VisionTransformer(nn.Module):
     """ Vision Transformer
     """
-    def __init__(self, img_size=224, patch_size=16, in_chans=3, num_classes=1000, num_perspectives=5, num_locations=2, num_relations=52, embed_dim=768, depth=12,
-                 num_heads=12, mlp_ratio=4., qkv_bias=False, qk_scale=None, drop_rate=0., attn_drop_rate=0.,
-                 drop_path_rate=0.1, hybrid_backbone=None, norm_layer=nn.LayerNorm, num_frames=8, attention_type='divided_space_time', dropout=0.):
+    def __init__(self, img_size=224, patch_size=16, in_chans=3, num_classes=1000, num_perspectives=4, num_locations=2, num_relations_with=22, num_relations_on=13, num_relations_what=29, embed_dim=768, depth=12, num_heads=12, mlp_ratio=4., qkv_bias=False, qk_scale=None, drop_rate=0., attn_drop_rate=0., drop_path_rate=0.1, hybrid_backbone=None, norm_layer=nn.LayerNorm, num_frames=8, attention_type='divided_space_time', dropout=0.):
         super().__init__()
         self.attention_type = attention_type
         self.depth = depth
@@ -211,7 +209,9 @@ class VisionTransformer(nn.Module):
         self.head = nn.Linear(embed_dim, num_classes) if num_classes > 0 else nn.Identity()
         self.perspective = nn.Linear(embed_dim, num_perspectives) if num_perspectives > 0 else nn.Identity()
         self.location = nn.Linear(embed_dim, num_locations) if num_locations > 0 else nn.Identity()
-        self.relation = nn.Linear(embed_dim, num_relations) if num_relations > 0 else nn.Identity()
+        self.relation_with = nn.Linear(embed_dim, num_relations_with) if num_relations_with > 0 else nn.Identity()
+        self.relation_on = nn.Linear(embed_dim, num_relations_on) if num_relations_on > 0 else nn.Identity()
+        self.relation_what = nn.Linear(embed_dim, num_relations_what) if num_relations_what > 0 else nn.Identity()
 
         trunc_normal_(self.pos_embed, std=.02)
         trunc_normal_(self.cls_token, std=.02)
@@ -242,14 +242,16 @@ class VisionTransformer(nn.Module):
         return {'pos_embed', 'cls_token', 'time_embed'}
 
     def get_classifier(self):
-        return self.head, self.perspective, self.location, self.relation
+        return self.head, self.perspective, self.location, self.relation_with, self.relation_on, self.relation_what
 
-    def reset_classifier(self, num_classes, num_perspectives, num_locations, num_relations, global_pool=''):
+    def reset_classifier(self, num_classes, num_perspectives, num_locations, num_relations_with, num_relations_on, num_relations_what, global_pool=''):
         self.num_classes = num_classes
         self.head = nn.Linear(self.embed_dim, num_classes) if num_classes > 0 else nn.Identity()
         self.perspective = nn.Linear(embed_dim, num_perspectives) if num_perspectives > 0 else nn.Identity()
         self.location = nn.Linear(embed_dim, num_locations) if num_locations > 0 else nn.Identity()
-        self.relation = nn.Linear(embed_dim, num_relations) if num_relations > 0 else nn.Identity()
+        self.relation_with = nn.Linear(embed_dim, num_relations_with) if num_relations_with > 0 else nn.Identity()
+        self.relation_on = nn.Linear(embed_dim, num_relations_on) if num_relations_on > 0 else nn.Identity()
+        self.relation_what = nn.Linear(embed_dim, num_relations_what) if num_relations_what > 0 else nn.Identity()
 
     def forward_features(self, x):
         B = x.shape[0]
@@ -301,9 +303,11 @@ class VisionTransformer(nn.Module):
         x = self.head(feat)
         x_per = self.perspective(feat)
         x_loc = self.location(feat)
-        x_rel = self.relation(feat)
-
-        return x, x_per, x_loc, x_rel, feat
+        x_with = self.relation_with(feat)
+        x_on = self.relation_on(feat)
+        x_what = self.relation_what(feat)
+                
+        return x, x_per, x_loc, x_with, x_on, x_what, feat
 
 def _conv_filter(state_dict, patch_size=16):
     """ convert patch embedding weight from manual patchify + linear proj to conv"""
@@ -322,7 +326,7 @@ class vit_base_patch16_224(nn.Module):
         super(vit_base_patch16_224, self).__init__()
         self.pretrained=True
         patch_size = 16
-        self.model = VisionTransformer(img_size=cfg.DATA.TRAIN_CROP_SIZE, num_classes=cfg.MODEL.NUM_CLASSES, num_perspectives=cfg.MODEL.NUM_PERSPECTIVES, num_locations=cfg.MODEL.NUM_LOCATIONS, num_relations=cfg.MODEL.NUM_RELATIONS, patch_size=patch_size, embed_dim=768, depth=12, num_heads=12, mlp_ratio=4, qkv_bias=True, norm_layer=partial(nn.LayerNorm, eps=1e-6), drop_rate=0., attn_drop_rate=0., drop_path_rate=0.1, num_frames=cfg.DATA.NUM_FRAMES, attention_type=cfg.TIMESFORMER.ATTENTION_TYPE, **kwargs)
+        self.model = VisionTransformer(img_size=cfg.DATA.TRAIN_CROP_SIZE, num_classes=cfg.MODEL.NUM_CLASSES, num_perspectives=cfg.MODEL.NUM_PERSPECTIVES, num_locations=cfg.MODEL.NUM_LOCATIONS, num_relations_with=cfg.MODEL.NUM_RELATIONS_WITH, num_relations_on=cfg.MODEL.NUM_RELATIONS_ON, num_relations_what=cfg.MODEL.NUM_RELATIONS_WHAT, patch_size=patch_size, embed_dim=768, depth=12, num_heads=12, mlp_ratio=4, qkv_bias=True, norm_layer=partial(nn.LayerNorm, eps=1e-6), drop_rate=0., attn_drop_rate=0., drop_path_rate=0.1, num_frames=cfg.DATA.NUM_FRAMES, attention_type=cfg.TIMESFORMER.ATTENTION_TYPE, **kwargs)
         self.attention_type = cfg.TIMESFORMER.ATTENTION_TYPE
         self.model.default_cfg = default_cfgs['vit_base_patch16_224']
         self.num_patches = (cfg.DATA.TRAIN_CROP_SIZE // patch_size) * (cfg.DATA.TRAIN_CROP_SIZE // patch_size)
@@ -332,6 +336,6 @@ class vit_base_patch16_224(nn.Module):
             load_pretrained(self.model, num_classes=self.model.num_classes, in_chans=kwargs.get('in_chans', 3), filter_fn=_conv_filter, img_size=cfg.DATA.TRAIN_CROP_SIZE, num_patches=self.num_patches, attention_type=self.attention_type, pretrained_model=pretrained_model)
 
     def forward(self, x):
-        x, x_per, x_loc, x_rel, feat = self.model(x)
+        x, x_per, x_loc, x_with, x_on, x_what, feat = self.model(x)
 
-        return x, x_per, x_loc, x_rel, feat
+        return x, x_per, x_loc, x_with, x_on, x_what, feat

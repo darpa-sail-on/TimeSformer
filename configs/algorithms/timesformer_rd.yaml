@@ -5,9 +5,11 @@ timesformer:
       fe_params:
         model_name: vit_base_patch16_224
         num_classes: 29
-        num_perspectives: 5
+        num_perspectives: 4
         num_locations: 2
-        num_relations: 52
+        num_relations_with: 22
+        num_relations_on: 13
+        num_relations_what: 29
         arch: vit
         checkpoint_file_path: ${model_root}/checkpoint_epoch_00015.pyth
         num_gpus: 1

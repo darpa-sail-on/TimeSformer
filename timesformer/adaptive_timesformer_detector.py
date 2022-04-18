@@ -64,7 +64,9 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
         self.base_cfg.MODEL.NUM_CLASSES = feature_extractor_params["num_classes"]
         self.base_cfg.MODEL.NUM_PERSPECTIVES = feature_extractor_params["num_perspectives"]
         self.base_cfg.MODEL.NUM_LOCATIONS = feature_extractor_params["num_locations"]
-        self.base_cfg.MODEL.NUM_RELATIONS = feature_extractor_params["num_relations"]
+        self.base_cfg.MODEL.NUM_RELATIONS_WITH = feature_extractor_params["num_relations_with"]
+        self.base_cfg.MODEL.NUM_RELATIONS_ON = feature_extractor_params["num_relations_on"]
+        self.base_cfg.MODEL.NUM_RELATIONS_WHAT = feature_extractor_params["num_relations_what"]
         self.base_cfg.NUM_GPUS = feature_extractor_params["num_gpus"]
         self.base_cfg.TRAIN.CHECKPOINT_FILE_PATH = \
             feature_extractor_params["checkpoint_file_path"]

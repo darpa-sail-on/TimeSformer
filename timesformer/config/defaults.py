@@ -217,8 +217,14 @@ _C.MODEL.NUM_PERSPECTIVES = 400
 # The number of locations to predict for the model.
 _C.MODEL.NUM_LOCATIONS = 400
 
-# The number of relations to predict for the model.
-_C.MODEL.NUM_RELATIONS = 400
+# The number of relations with to predict for the model.
+_C.MODEL.NUM_RELATIONS_WITH = 400
+
+# The number of relations on to predict for the model.
+_C.MODEL.NUM_RELATIONS_ON = 400
+
+# The number of relations what to predict for the model.
+_C.MODEL.NUM_RELATIONS_WHAT = 400
 
 # Loss function.
 _C.MODEL.LOSS_FUNC = "cross_entropy"

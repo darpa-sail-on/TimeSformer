@@ -6,9 +6,11 @@ timesformer:
       fe_params:
         model_name: vit_base_patch16_224
         num_classes: 29
-        num_perspectives: 5
+        num_perspectives: 4
         num_locations: 2
-        num_relations: 52
+        num_relations_with: 22
+        num_relations_on: 13
+        num_relations_what: 29
         arch: vit
         checkpoint_file_path: ${model_root}/checkpoint_epoch_00015.pyth
         num_gpus: 1
@@ -22,7 +24,7 @@ timesformer:
         threshold_scale: 7.0
         feedback_weight: 1.0 # binary novelty feedback
       evm_params:
-        tail_size: 4000 # Cannot exceed half of the number of training samples
+        tail_size: 10000 # Cannot exceed half of the number of training samples
         distance_metric: 'cosine'
         distance_multiplier: 1.0
         #distance_threshold: 0.45

@@ -44,7 +44,9 @@ class TimesformerDetector:
         self.base_cfg.MODEL.NUM_CLASSES = feature_extractor_params["num_classes"]
         self.base_cfg.MODEL.NUM_PERSPECTIVES = feature_extractor_params["num_perspectives"]
         self.base_cfg.MODEL.NUM_LOCATIONS = feature_extractor_params["num_locations"]
-        self.base_cfg.MODEL.NUM_RELATIONS = feature_extractor_params["num_relations"]
+        self.base_cfg.MODEL.NUM_RELATIONS_WITH = feature_extractor_params["num_relations_with"]
+        self.base_cfg.MODEL.NUM_RELATIONS_ON = feature_extractor_params["num_relations_on"]
+        self.base_cfg.MODEL.NUM_RELATIONS_WHAT = feature_extractor_params["num_relations_what"]
         self.base_cfg.NUM_GPUS = feature_extractor_params["num_gpus"]
         self.base_cfg.TRAIN.CHECKPOINT_FILE_PATH = \
             feature_extractor_params["checkpoint_file_path"]
@@ -111,14 +113,16 @@ class TimesformerDetector:
         for video_idx, inputs in enumerate(loader):
             inputs = inputs.cuda()
             for input_tensor in torch.unbind(inputs):
-                preds, preds_per, preds_loc, preds_rel, feats = \
+                preds, preds_per, preds_loc, preds_with, preds_on, preds_what, feats = \
                         self.model(input_tensor)
                 feature_dict[relative_fpaths[video_idx][0]] = feats.detach().cpu().numpy()
                 logit_dict[relative_fpaths[video_idx][0]] = {
                         "class_preds": preds.detach().cpu().numpy(),
                         "prespective_preds": preds_per.detach().cpu().numpy(),
                         "location_preds": preds_loc.detach().cpu().numpy(),
-                        "relation_preds": preds_rel.detach().cpu().numpy()
+                        "relation_with_preds": preds_with.detach().cpu().numpy(),
+                        "relation_on_preds": preds_on.detach().cpu().numpy(),
+                        "relation_what_preds": preds_what.detach().cpu().numpy()
                     }
         self.logger.info(f"{self.logging_header}: Finished feature extraction")
         return feature_dict, logit_dict
