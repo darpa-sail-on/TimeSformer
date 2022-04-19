@@ -10,7 +10,6 @@ their [paper](https://arxiv.org/pdf/2102.05095.pdf).
 3. [Python 3.8](https://www.python.org/downloads/release/python-380/)
 4. [CUDA 10.2](https://developer.nvidia.com/cuda-10.2-download-archive)
 
-# Installation
 ## Using Poetry
 1. Install poetry based on the instructions provided in their [documentation](https://python-poetry.org/docs/#installation).
 2. Clone timesformer along with additional dependencies using:
@@ -21,6 +20,8 @@ their [paper](https://arxiv.org/pdf/2102.05095.pdf).
    This would create TimeSformer, and ND-Activity-Recognition-Feeback directories in your working directory
 3. Create a virtual environment and install the components using the following commands:
    ```
+    cd TimeSformer
+    git checkout m24-agent
     poetry install
     poetry run pip install ../ND-Activity-Recognition-Feeback
     poetry shell
@@ -59,10 +60,11 @@ their [paper](https://arxiv.org/pdf/2102.05095.pdf).
    Note: Working directory in this case is the directory where timesformer is cloned.
 
 # Usage
+
 ## Dry Run
 
-1. Download the `checkpoint_epoch_00015.pyth` from [google drive](https://drive.google.com/drive/folders/1NbYqoOBoSl8iUi-tHy0uE1AkRkxzkMki?usp=sharing)
-2. Download the evm model (HDF5 File) from [google drive](https://drive.google.com/drive/folders/1NbYqoOBoSl8iUi-tHy0uE1AkRkxzkMki)
+1. Download the `checkpoint_epoch_00015.pyth` from [google drive](https://drive.google.com/file/d/16TCu-9rmifx4RnGIG-UoVGRJ76SGBUTV/view?usp=sharing)
+2. Download the evm model (HDF5 File) from [google drive](https://drive.google.com/file/d/1qrInrPNpCv8cn_A2luXaaAdvtdGqm9uX/view?usp=sharing)
    in the same directory as the model from the previous step.
 3. If you are using the files on your machine use the following command
    ```
@@ -76,10 +78,11 @@ their [paper](https://arxiv.org/pdf/2102.05095.pdf).
     ```
 
 
-## M-24 Evaluation
+## M-30 Evaluation
+
 ### Feature Extraction
 
-1. Download the `checkpoint_epoch_00015.pyth` from [google drive](https://drive.google.com/drive/folders/1NbYqoOBoSl8iUi-tHy0uE1AkRkxzkMki?usp=sharing)
+1. Download the `checkpoint_epoch_00015.pyth` from [google drive](https://drive.google.com/file/d/16TCu-9rmifx4RnGIG-UoVGRJ76SGBUTV/view?usp=sharing)
 2. If you are using the evaluation use the following command
    ```
    HYDRA_FULL_ERROR=1 sail-on-client --config-dir <your working directory>/TimeSformer/configs/ \
@@ -115,117 +118,7 @@ their [paper](https://arxiv.org/pdf/2102.05095.pdf).
                                       hydra/launcher=veydrus \
     ```
 
-### System Detection
-1. Download the features from [google drive](https://drive.google.com/drive/folders/15mbBTOUtfV47EziACEPcc2gXqzKFuKpI?usp=sharing)
-2. Download the evm model (HDF5 File) from [google drive](https://drive.google.com/drive/folders/1NbYqoOBoSl8iUi-tHy0uE1AkRkxzkMki)
-3. With the evaluation server use the following command
-   ```
-     HYDRA_FULL_ERROR=1 sail-on-client --config-dir configs/ \
-                                       --config-name system_detection_par \
-                                       server_url=<url for server> \
-                                       model_root=<root directory where models are stored> \
-                                       protocol.smqtk.config.feature_dir=<root directory where features are stored> \
-                                       protocol.smqtk.config.dataset_root=<root directory of vidoes> \
-                                       algorithms@protocol.smqtk.config.algorithms=[timesformer_base] \
-                                       protocol.smqtk.config.test_ids=[<comma seperated test ids>]
-   ```
-
-4. With files on the machine using the following command
-   ```
-     HYDRA_FULL_ERROR=1 sail-on-client --config-dir configs/ \
-                                       --config-name system_detection_local \
-                                       test_root=<root directory with tests> \
-                                       protocol.smqtk.config.feature_dir=<root directory with features> \
-                                       protocol.smqtk.config.dataset_root=<root directory with videos> \
-                                       algorithms@protocol.smqtk.config.algorithms=[timesformer_base]
-                                       protocol.smqtk.config.test_ids=[<comma seperate test ids>]
-   ```
-
-### Given Detection
-
-1. Download the features from [google drive](https://drive.google.com/drive/folders/15mbBTOUtfV47EziACEPcc2gXqzKFuKpI?usp=sharing)
-
-2. Download the evm model (HDF5 File) from [google drive](https://drive.google.com/drive/folders/1NbYqoOBoSl8iUi-tHy0uE1AkRkxzkMki)
-
-3. With the evaluation server use the following command
-   ```
-     HYDRA_FULL_ERROR=1 sail-on-client --config-dir configs/ \
-                                       --config-name given_detection_par \
-                                       server_url=<url for server> \
-                                       model_root=<root directory where models are stored> \
-                                       protocol.smqtk.config.feature_dir=<root directory where features are stored> \
-                                       protocol.smqtk.config.dataset_root=<root directory of vidoes> \
-                                       algorithms@protocol.smqtk.config.algorithms=[timesformer_rd] \
-                                       protocol.smqtk.config.test_ids=[<comma seperated test ids>]
-   ```
-
-4. With files on the machine using the following command
-   ```
-     HYDRA_FULL_ERROR=1 sail-on-client --config-dir configs/ \
-                                       --config-name given_detection_local \
-                                       test_root=<root directory with tests> \
-                                       protocol.smqtk.config.feature_dir=<root directory with features> \
-                                       protocol.smqtk.config.dataset_root=<root directory with videos> \
-                                       algorithms@protocol.smqtk.config.algorithms=[timesformer_rd]
-                                       protocol.smqtk.config.test_ids=[<comma seperate test ids>]
-   ```
-
-### System Detection With Classification Feedback
-1. Download the features from [google drive](https://drive.google.com/drive/folders/15mbBTOUtfV47EziACEPcc2gXqzKFuKpI?usp=sharing)
-2. Download the evm model (HDF5 File) from [google drive](https://drive.google.com/drive/folders/1NbYqoOBoSl8iUi-tHy0uE1AkRkxzkMki)
-3. Download additional file available in the following links:
-   - [clip path](https://drive.google.com/file/d/1F_xBuDaGY7aF1qIA5bULbZX4WQHOkolf/view?usp=sharing)
-   - [clip templates](https://drive.google.com/file/d/1ZGNeAjpkVTh7VMwQ2s6IsWv8yzcnnjGs/view?usp=sharing)
-   - [pred known map](https://drive.google.com/file/d/1lK2uKoKYvnspWoVOynOS41d9gQ-XPYXM/view?usp=sharing)
-   - [pred label encs](https://drive.google.com/file/d/1dLIVIJ4jPyN911afYGID23WM01oSf3Ov/view?usp=sharing)
-   - [feedback known map](https://drive.google.com/file/d/1Se601WezeQZrPqvYLmamjcZ03J17h56d/view?usp=sharing)
-   - [feedback label encs](https://drive.google.com/file/d/1p1hNqV8qI9Qck6IVnRH_bWgsDlH66gPh/view?usp=sharing)
-3. With the evaluation server use the following command
-   ```
-     HYDRA_FULL_ERROR=1 sail-on-client --config-dir configs/ \
-                                       --config-name system_detection_classification_feedback_par \
-                                       server_url=<url for server> \
-                                       model_root=<root directory where models are stored> \
-                                       protocol.smqtk.config.feature_dir=<root directory where features are stored> \
-                                       protocol.smqtk.config.dataset_root=<root directory of vidoes> \
-                                       algorithms@protocol.smqtk.config.algorithms=[timesformer_feedback] \
-                                       protocol.smqtk.config.test_ids=[<comma seperated test ids>]
-   ```
-4. With files on the machine using the following command
-   ```
-     HYDRA_FULL_ERROR=1 sail-on-client --config-dir configs/ \
-                                       --config-name system_detection_classification_feedback_local \
-                                       test_root=<root directory with tests> \
-                                       protocol.smqtk.config.feature_dir=<root directory with features> \
-                                       protocol.smqtk.config.dataset_root=<root directory with videos> \
-                                       algorithms@protocol.smqtk.config.algorithms=[timesformer_feedback]
-                                       protocol.smqtk.config.test_ids=[<comma seperate test ids>]
-   ```
-
-### Given Detection With Detection Feedback
-1. Download the features from [google drive](https://drive.google.com/drive/folders/15mbBTOUtfV47EziACEPcc2gXqzKFuKpI?usp=sharing)
-2. Download the evm model (HDF5 File) from [google drive](https://drive.google.com/drive/folders/1NbYqoOBoSl8iUi-tHy0uE1AkRkxzkMki)
-3. With the evaluation server use the following command
-   ```
-     HYDRA_FULL_ERROR=1 sail-on-client --config-dir configs/ \
-                                       --config-name given_detection_detection_feedback_par \
-                                       server_url=<url for server> \
-                                       model_root=<root directory where models are stored> \
-                                       protocol.smqtk.config.feature_dir=<root directory where features are stored> \
-                                       protocol.smqtk.config.dataset_root=<root directory of vidoes> \
-                                       algorithms@protocol.smqtk.config.algorithms=[timesformer_detection_feedback] \
-                                       protocol.smqtk.config.test_ids=[<comma seperated test ids>]
-   ```
-4. With files on the machine using the following command
-   ```
-     HYDRA_FULL_ERROR=1 sail-on-client --config-dir configs/ \
-                                       --config-name given_detection_detection_feedback_local \
-                                       test_root=<root directory with tests> \
-                                       protocol.smqtk.config.feature_dir=<root directory with features> \
-                                       protocol.smqtk.config.dataset_root=<root directory with videos> \
-                                       algorithms@protocol.smqtk.config.algorithms=[timesformer_detection_feedback]
-                                       protocol.smqtk.config.test_ids=[<comma seperate test ids>]
-   ```
+Note: Instructions for running M24 Agent is available in [M24.md](M24.md).
 
 # Training Network
 
