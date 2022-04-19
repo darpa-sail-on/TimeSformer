@@ -1,5 +1,0 @@
-- test_root=/data/dawei.du/TimeSformer/data/
-- protocol.smqtk.config.dataset_root=/data/datasets/M24/AR/videos
-- model_root=/data/dawei.du/TimeSformer/models/
-- algorithms@protocol.smqtk.config.algorithms=[timesformer_base]
-- protocol.smqtk.config.test_ids=[OND.0.10001.6438158]
