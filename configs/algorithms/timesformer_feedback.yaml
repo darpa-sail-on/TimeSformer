@@ -17,11 +17,11 @@ timesformer:
       kl_params:
         window_size: 100
         mu_train: 1.0
-        sigma_train: 0.1242729408792351
-        KL_threshold: 5.365822113508410
+        sigma_train: 0.9727492989192358
+        KL_threshold: 2.1389749564639393
         decay_rate: 0.6
         num_rounds: 40
-        threshold_scale: 7.0
+        threshold_scale: 6.0
         feedback_weight: 1.0 # binary novelty feedback
       evm_params:
         tail_size: 10000 # Cannot exceed half of the number of training samples
