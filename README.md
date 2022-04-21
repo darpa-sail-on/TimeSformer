@@ -21,7 +21,6 @@ their [paper](https://arxiv.org/pdf/2102.05095.pdf).
 3. Create a virtual environment and install the components using the following commands:
    ```
     cd TimeSformer
-    git checkout m24-agent
     poetry install
     poetry run pip install ../ND-Activity-Recognition-Feeback
     poetry shell
