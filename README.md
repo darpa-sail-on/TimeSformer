@@ -81,7 +81,9 @@ their [paper](https://arxiv.org/pdf/2102.05095.pdf).
 
 ### Feature Extraction
 
-1. Download the `checkpoint_epoch_00015.pyth` from [google drive](https://drive.google.com/file/d/16TCu-9rmifx4RnGIG-UoVGRJ76SGBUTV/view?usp=sharing)
+1. Download the network model (pyth from) from [google drive](https://drive.google.com/file/d/16TCu-9rmifx4RnGIG-UoVGRJ76SGBUTV/view?usp=sharing)
+
+2. Download the evm model (HDF5 File) from [google drive](https://drive.google.com/file/d/1qrInrPNpCv8cn_A2luXaaAdvtdGqm9uX/view?usp=sharing)
 2. If you are using the evaluation use the following command
    ```
    HYDRA_FULL_ERROR=1 sail-on-client --config-dir <your working directory>/TimeSformer/configs/ \
@@ -116,6 +118,62 @@ their [paper](https://arxiv.org/pdf/2102.05095.pdf).
                                       algorithms@protocol.smqtk.config.algorithms=[timesformer_base] \
                                       hydra/launcher=veydrus \
     ```
+
+
+### Given Detection
+
+1. Download the network model (pyth from) from [google drive](https://drive.google.com/file/d/16TCu-9rmifx4RnGIG-UoVGRJ76SGBUTV/view?usp=sharing)
+2. Download the evm model (HDF5 File) from [google drive](https://drive.google.com/file/d/1qrInrPNpCv8cn_A2luXaaAdvtdGqm9uX/view?usp=sharing)
+3. With the evaluation server use the following command
+   ```
+     HYDRA_FULL_ERROR=1 sail-on-client --config-dir configs/ \
+                                       --config-name given_detection_par \
+                                       server_url=<url for server> \
+                                       model_root=<root directory where models are stored> \
+                                       protocol.smqtk.config.feature_dir=<root directory where features are stored> \
+                                       protocol.smqtk.config.dataset_root=<root directory of vidoes> \
+                                       algorithms@protocol.smqtk.config.algorithms=[timesformer_rd] \
+                                       protocol.smqtk.config.test_ids=[<comma seperated test ids>]
+   ```
+
+4. With files on the machine using the following command
+   ```
+     HYDRA_FULL_ERROR=1 sail-on-client --config-dir configs/ \
+                                       --config-name given_detection_local \
+                                       test_root=<root directory with tests> \
+                                       model_root=<root directory where models are stored> \
+                                       protocol.smqtk.config.feature_dir=<root directory with features> \
+                                       protocol.smqtk.config.dataset_root=<root directory with videos> \
+                                       algorithms@protocol.smqtk.config.algorithms=[timesformer_rd]
+                                       protocol.smqtk.config.test_ids=[<comma seperate test ids>]
+   ```
+
+### Given Detection With Detection Feedback
+
+1. Download the features from [google drive](https://drive.google.com/file/d/12xRLyrlmy6Ne42Va2iSd2xQo0K_S9ofs/view?usp=sharing)
+2. Download the evm model (HDF5 File) from [google drive](https://drive.google.com/file/d/1UiAMjwJ9axziM7-u5svKliNidba0IPl-/view?usp=sharing)
+3. With the evaluation server use the following command
+   ```
+     HYDRA_FULL_ERROR=1 sail-on-client --config-dir configs/ \
+                                       --config-name given_detection_detection_feedback_par \
+                                       server_url=<url for server> \
+                                       model_root=<root directory where models are stored> \
+                                       protocol.smqtk.config.feature_dir=<root directory where features are stored> \
+                                       protocol.smqtk.config.dataset_root=<root directory of vidoes> \
+                                       algorithms@protocol.smqtk.config.algorithms=[timesformer_detection_feedback] \
+                                       protocol.smqtk.config.test_ids=[<comma seperated test ids>]
+   ```
+4. With files on the machine using the following command
+   ```
+     HYDRA_FULL_ERROR=1 sail-on-client --config-dir configs/ \
+                                       --config-name given_detection_detection_feedback_local \
+                                       test_root=<root directory with tests> \
+                                       model_root=<root directory where models are stored> \
+                                       protocol.smqtk.config.feature_dir=<root directory with features> \
+                                       protocol.smqtk.config.dataset_root=<root directory with videos> \
+                                       algorithms@protocol.smqtk.config.algorithms=[timesformer_detection_feedback]
+                                       protocol.smqtk.config.test_ids=[<comma seperate test ids>]
+   ```
 
 Note: Instructions for running M24 Agent is available in [M24.md](M24.md).
 
