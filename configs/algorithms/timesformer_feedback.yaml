@@ -17,8 +17,8 @@ timesformer:
       kl_params:
         window_size: 100
         mu_train: 1.0
-        sigma_train: 0.9727492989192358
-        KL_threshold: 2.1389749564639393
+        sigma_train: 0.0696
+        KL_threshold: 0.3783
         decay_rate: 0.6
         num_rounds: 40
         threshold_scale: 6.0
