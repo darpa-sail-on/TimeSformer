@@ -141,6 +141,7 @@ their [paper](https://arxiv.org/pdf/2102.05095.pdf).
      HYDRA_FULL_ERROR=1 sail-on-client --config-dir configs/ \
                                        --config-name given_detection_local \
                                        test_root=<root directory with tests> \
+                                       model_root=<root directory where models are stored> \
                                        protocol.smqtk.config.feature_dir=<root directory with features> \
                                        protocol.smqtk.config.dataset_root=<root directory with videos> \
                                        algorithms@protocol.smqtk.config.algorithms=[timesformer_rd]
@@ -167,6 +168,7 @@ their [paper](https://arxiv.org/pdf/2102.05095.pdf).
      HYDRA_FULL_ERROR=1 sail-on-client --config-dir configs/ \
                                        --config-name given_detection_detection_feedback_local \
                                        test_root=<root directory with tests> \
+                                       model_root=<root directory where models are stored> \
                                        protocol.smqtk.config.feature_dir=<root directory with features> \
                                        protocol.smqtk.config.dataset_root=<root directory with videos> \
                                        algorithms@protocol.smqtk.config.algorithms=[timesformer_detection_feedback]
