@@ -37,6 +37,7 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
         dataloader_params,
         detection_threshold,
         feedback_obj,
+        pre_novelty_batches
     ):
         """
         Constructor for the activity recognition models
@@ -50,6 +51,7 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
         :param dataloader_params (dict): Parameters for dataloader
         :param detection_threshold (float): The threshold for binary detection
         :param feedback_obj: An instance used for requesting feedback
+        :param pre_novelty_batches: Number of pre novelty batches
         """
         # TODO some of this can be resolved with super().init, but needs
         # thought thru. For now all that matters is it will work.

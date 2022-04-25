@@ -63,7 +63,8 @@ class AdaptiveTimesformerAdapter(TimesformerAdapter):
                                             self.feedback_interpreter_params,
                                             self.dataloader_params,
                                             self.detection_threshold,
-                                            feedback_obj)
+                                            feedback_obj,
+                                            toolset['pre_novelty_batches'])
 
 
     def novelty_adaptation(self, toolset: Dict) -> None:
