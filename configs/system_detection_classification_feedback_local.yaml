@@ -1,6 +1,6 @@
 defaults:
   - default
-  - protocol/use_features@protocol.smqtk.config: non_consolidated
+  - protocol/use_features@protocol.smqtk.config: none
   - protocol/feedback@protocol.smqtk.config: classification
   - protocol/eval@protocol.smqtk.config: without_reaction
   - _self_
