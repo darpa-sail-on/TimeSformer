@@ -75,7 +75,8 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
         self.feature_extractor = build_model(self.base_cfg)
         self.model = build_model(self.base_cfg)
         cu.load_test_checkpoint(self.base_cfg, self.model)
-        self.novelty_free_rounds = 5
+        self.pre_novelty_batches = pre_novelty_batches
+        self.pre_novelty_dist = torch.Tensor()
         # Add dataloader parameters
         self.base_cfg.TEST = CfgNode()
         self.base_cfg.TEST.NUM_ENSEMBLE_VIEWS = dataloader_params["num_ensemble_views"]
@@ -88,6 +89,7 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
         self.number_workers = dataloader_params["n_threads"]
         self.pin_memory = dataloader_params["pin_memory"]
        #print(dataloader_params)
+        self.red_button_thresh = .02
         self.has_world_changed = False
         self.sliding_window = []
         self.past_window = []
@@ -162,8 +164,8 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
         # OWHAR: FineTune, EVM, FINCH, CLIP Feedback Interpreter args
         classlist = list(interpreter.pred_known_map.encoder)
         del classlist[27]
-        evm_params['tail_size'] = 10
-        evm_params['cover_threshold'] = 0.2
+        evm_params['tail_size'] = 3000
+        # evm_params['cover_threshold'] = 0.7
        #print(evm_params)
         self.owhar = OWHAPredictorEVM(
             FineTune(
@@ -198,8 +200,9 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
             self.train_labels,
             True,
         )
-
-        # Obtain detection threshold and kl threshold if None provided
+        self.train_dist = self.owhar.known_probs(self.train_features)
+        self.train_dist, _ = torch.max(self.train_dist, axis=1)
+        self.get_distribution_statistics(torch.Tensor())
         if feedback_interpreter_params['thresh_set_data']:
             if self.owhar.novelty_detector.kl_threshold is not None:
                 logging.warning(
@@ -282,11 +285,19 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
             p_batch = p_val[ind]
             mu_p_batch = np.mean(p_batch)
             sigma_p_batch = np.std(p_batch)
+            # print("mu_p_batch")
+            # print(mu_p_batch)
+            # print("sigma_p_batch")
+            # print(sigma_p_batch)
+            # print("sigma_p_batch")
+            # print(np.sqrt(np.mean((p_train - 1.0)**2)))
+            # assert 8==7
+
             return KL_Gaussian(
                 mu=mu_p_batch,
                 sigma=sigma_p_batch,
-                m=1.0,
-                s=np.sqrt(np.mean((p_train - 1.0)**2)),
+                m=self.mu_train.detach(),
+                s=self.sigma_train.detach(),
             )
 
         average_of_known_batch = int(TA1_test_size / (batch_size * 2) )
@@ -306,8 +317,17 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
         index = int(number_of_evaluation * (min_percentage_not_early/ 100)) + 1
         if index >= number_of_evaluation:
             index = -1
-
+        # print(kl_sorted)
         return kl_sorted[index]
+
+    def get_distribution_statistics(self, new_batch):
+        print(torch.mean(self.train_dist))
+        self.pre_novelty_dist = torch.cat((self.pre_novelty_dist,new_batch))
+        all_pre_nov = torch.cat((self.pre_novelty_dist,self.train_dist))
+        self.mu_train = torch.mean(all_pre_nov)
+        self.sigma_train = torch.std(all_pre_nov)
+
+
 
     # @property
     # def has_world_changed(self):
@@ -418,6 +438,7 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
             result_path = f"wd_{self.session_id}_{self.test_id}.csv"
         else:
             result_path = f"wd_{self.session_id}_{self.test_id}_{round_id}.csv"
+        # print(result_path)
         image_names, FVs = zip(*feature_dict.items())
         class_map = map(self.owhar.known_probs,
                         map(lambda x: torch.Tensor(x).double(), FVs))
@@ -455,15 +476,18 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
                     mu = torch.mean(p_window, dim=1)
 
                     sigma = torch.std(p_window, dim=1)
-                    print(sigma)
-                    print(mu)
+                    # print(sigma)
+                    # print(mu)
+                    print(self.sigma_train)
+                    print(self.mu_train)
                     kl_epoch = self.kullback_leibler2(mu, sigma, self.mu_train,
                                                      self.sigma_train)
                     self.logger.info(f"max kl_epoch = {torch.max(kl_epoch)}")
                     W = (kl_epoch / (2*self.kl_threshold))#1.1
                     logging.info(f"W = {W.tolist()}")
                     W[0] = torch.clamp(W[0], min=self.acc)
-                    W , _ = torch.cummax (W, dim=0)
+                    # W[0] = torch.clamp(W[0], min=0)
+                    W , _ = torch.cummax (W*1.5, dim=0)
                     self.temp_world_changed = \
                             torch.clamp(W , max=1.0)[len(W)-round_size:]
                     self.temp_world_changed = torch.clamp(self.temp_world_changed,
@@ -475,26 +499,25 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
                     df = pd.DataFrame(zip(image_names,
                                           self.temp_world_changed.tolist()),
                                       columns=['id', 'P_world_changed'])
-                print(self.acc)
+                    # print(df)
                 # if round_id < self.novelty_free_rounds:
-
                 #TODO: this is bad
                 with open("/home/sgrieggs/acc_over_time/accs.csv", "a") as f:
                     f.write(str(self.acc) + "\n")
                 with open("/home/sgrieggs/acc_over_time/threshs.csv", "a") as f:
-                    f.write(str(self.detection_threshold) + "\n")
-                print(self.detection_threshold)
-                if self.acc > self.detection_threshold:
+                    f.write(str(torch.max(kl_epoch)) + "\n")
+                if self.acc > self.detection_threshold and round_id > self.pre_novelty_batches:
                     self.has_world_changed = True
-                    assert 8==7
+                elif round_id <= self.pre_novelty_batches:
+                    self.get_distribution_statistics(mean_max_probs)
         self.logger.info(f"{logging_header}: Number of samples in results {df.shape}")
         df.to_csv(result_path, index=False, header=False, float_format='%.4f')
         self.logger.info(f"{logging_header}: Finished with change detection")
         self.kl_threshold =  self.kl_threshold - self.kl_threshold_decay
-        # self.kl_threshold = 36
         self.round_feature_dict = feature_dict
         for x in self.round_feature_dict:
             self.round_feature_dict[x] = torch.Tensor(self.round_feature_dict[x])
+        # print("done")
         return result_path
 
     def classification(self, owhar, feature_dict, logit_dict, round_id=None):
@@ -694,7 +717,6 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
         for x in feedback_df['id']:
             features_arr.append(torch.Tensor(self.round_feature_dict[x])[1,:])
         # Combine the train data with the feedback data for update
-
 
         self.train_features = torch.cat([
             self.train_features,
