@@ -78,7 +78,7 @@ class TimesformerDetector:
         self.mu_train = kl_params["mu_train"]
         self.acc = 0.0
         self.has_world_changed = False
-        self.kl_threshold_decay = (num_rounds  * kl_decay_rate)/float(num_rounds)
+        self.kl_threshold_decay = kl_decay_rate/float(num_rounds)
 
         self.detection_threshold = detection_threshold
         self.evm = ExtremeValueMachine.load(evm_params["model_path"],
