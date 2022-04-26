@@ -203,16 +203,32 @@ their [paper](https://arxiv.org/pdf/2102.05095.pdf).
    ```
 
 ### System Detection With Classification Feedback
-1. Download the network model (pyth from) from [google drive](https://drive.google.com/file/d/16TCu-9rmifx4RnGIG-UoVGRJ76SGBUTV/view?usp=sharing)
-2. Download the features from [google drive](https://drive.google.com/file/d/12xRLyrlmy6Ne42Va2iSd2xQo0K_S9ofs/view?usp=sharing)
+1. Download the network model (pyth file) from [google drive](https://drive.google.com/file/d/12xRLyrlmy6Ne42Va2iSd2xQo0K_S9ofs/view?usp=sharing)
+2. Download the features (.bin files) from [google drive](https://drive.google.com/drive/folders/1WrAS-Ip-edvFruypVvF0uraaaeIV1FiV?usp=sharing)
 3. Download the evm model (HDF5 File) from [google drive](https://drive.google.com/file/d/1UiAMjwJ9axziM7-u5svKliNidba0IPl-/view?usp=sharing)
-4. Download additional file available in the following links:
-   - [clip path](https://drive.google.com/file/d/1F_xBuDaGY7aF1qIA5bULbZX4WQHOkolf/view?usp=sharing)
-   - [clip templates](https://drive.google.com/file/d/1ZGNeAjpkVTh7VMwQ2s6IsWv8yzcnnjGs/view?usp=sharing)
-   - [pred known map](https://drive.google.com/file/d/1lK2uKoKYvnspWoVOynOS41d9gQ-XPYXM/view?usp=sharing)
-   - [pred label encs](https://drive.google.com/file/d/1dLIVIJ4jPyN911afYGID23WM01oSf3Ov/view?usp=sharing)
-   - [feedback known map](https://drive.google.com/file/d/1Se601WezeQZrPqvYLmamjcZ03J17h56d/view?usp=sharing)
-   - [feedback label encs](https://drive.google.com/file/d/1p1hNqV8qI9Qck6IVnRH_bWgsDlH66gPh/view?usp=sharing)
+4. Download additional [data](https://drive.google.com/drive/folders/1YZ5fO14bnfJYVE6nXMaaJGpccWdx8N4u?usp=sharing)
+   and [model](https://drive.google.com/drive/folders/1exAjXZ6uBrkBr904pjXYxU8BAYM7ONOF?usp=sharing) folder
+   and place then in the model_root where the network and evm model is present. The `model_root` would have the
+   following structure after this
+   ```
+      ├── checkpoint_epoch_00015.pyth
+      ├── data
+      │   ├── clip
+      │   │   └── k700_templates.txt
+      │   ├── kinetics
+      │   │   └── kinetics600
+      │   │       ├── clip_sorted_label_text_encs.pt
+      │   │       └── unique_sorted_actions.csv
+      │   └── par
+      │       ├── clip_par_ontology_idx_sorted_label_text_encs.pt
+      │       └── ordered_par_classes.txt
+      ├── models
+      │   └── clip
+      │       └── clip_ViT-B_32.pt
+      ├── timesformer_feats_evm.hdf5
+      ├── timesformer_test_feats.bin
+      └── timesformer_train_feats.bin
+   ```
 5. With the evaluation server use the following command
    ```
      HYDRA_FULL_ERROR=1 sail-on-client --config-dir configs/ \
