@@ -175,6 +175,33 @@ their [paper](https://arxiv.org/pdf/2102.05095.pdf).
                                        protocol.smqtk.config.test_ids=[<comma seperate test ids>]
    ```
 
+### System Detection
+
+1. Download the features from [google drive](https://drive.google.com/file/d/12xRLyrlmy6Ne42Va2iSd2xQo0K_S9ofs/view?usp=sharing)
+2. Download the evm model (HDF5 File) from [google drive](https://drive.google.com/file/d/1UiAMjwJ9axziM7-u5svKliNidba0IPl-/view?usp=sharing)
+3. With the evaluation server use the following command
+   ```
+     HYDRA_FULL_ERROR=1 sail-on-client --config-dir configs/ \
+                                       --config-name system_detection_par \
+                                       server_url=<url for server> \
+                                       model_root=<root directory where models are stored> \
+                                       protocol.smqtk.config.feature_dir=<root directory where features are stored> \
+                                       protocol.smqtk.config.dataset_root=<root directory of vidoes> \
+                                       algorithms@protocol.smqtk.config.algorithms=[timesformer_base] \
+                                       protocol.smqtk.config.test_ids=[<comma seperated test ids>]
+   ```
+4. With files on the machine using the following command
+   ```
+     HYDRA_FULL_ERROR=1 sail-on-client --config-dir configs/ \
+                                       --config-name system_detection_par \
+                                       test_root=<root directory with tests> \
+                                       model_root=<root directory where models are stored> \
+                                       protocol.smqtk.config.feature_dir=<root directory with features> \
+                                       protocol.smqtk.config.dataset_root=<root directory with videos> \
+                                       algorithms@protocol.smqtk.config.algorithms=[timesformer_base]
+                                       protocol.smqtk.config.test_ids=[<comma seperate test ids>]
+   ```
+
 Note: Instructions for running M24 Agent is available in [M24.md](M24.md).
 
 # Training Network
