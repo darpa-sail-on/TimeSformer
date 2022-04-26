@@ -141,11 +141,6 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
         temp = torch.cat(self.train_features['labels'])
         for x in range(len(temp)):
             temp[x] = CLASS_MAPPING[int(temp[x])]
-
-        with open("/home/sgrieggs/acc_over_time/accs.csv", "w") as f:
-            f.write("")
-        with open("/home/sgrieggs/acc_over_time/threshs.csv", "w") as f:
-            f.write("")
         #This is where we start
         self.train_labels = torch.nn.functional.one_hot(
             temp.type(torch.long)
@@ -501,11 +496,6 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
                                       columns=['id', 'P_world_changed'])
                     # print(df)
                 # if round_id < self.novelty_free_rounds:
-                #TODO: this is bad
-                with open("/home/sgrieggs/acc_over_time/accs.csv", "a") as f:
-                    f.write(str(self.acc) + "\n")
-                with open("/home/sgrieggs/acc_over_time/threshs.csv", "a") as f:
-                    f.write(str(torch.max(kl_epoch)) + "\n")
                 if self.acc > self.detection_threshold and round_id > self.pre_novelty_batches:
                     self.has_world_changed = True
                 elif round_id <= self.pre_novelty_batches:
