@@ -244,6 +244,7 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
         ond_val : torch.Tensor
             The known feature representations as given by ground truth
         ond_unknown : torch.Tensor
+        ond_unknown : torch.Tensor
             The unknown feature representations as given by ground truth
         """
         ond_train = ond_train[~torch.any(ond_train.isnan(), dim=1)]
@@ -287,7 +288,7 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
             # print(sigma_p_batch)
             # print("sigma_p_batch")
             # print(np.sqrt(np.mean((p_train - 1.0)**2)))
-            # assert 8==7
+
 
             return KL_Gaussian(
                 mu=mu_p_batch,
@@ -452,11 +453,11 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
                     self.sliding_window[window_size-self.window_size:]
 
         if len(self.sliding_window) < self.window_size or round_id == 0:
-            df = pd.DataFrame(zip(image_names, [0.0]*len(image_names)))
+            df = pd.DataFrame(zip(image_names, [0.0]*len(image_names),(1-mean_max_probs).tolist()))
         else:
             # Redundant case when acc is 1.0
             if self.acc == 1.0:
-                df = pd.DataFrame(zip(image_names, [1.0]*len(image_names)))
+                df = pd.DataFrame(zip(image_names, [1.0]*len(image_names),(1-mean_max_probs).tolist()))
             else:
                 # Using kl divergence
                 with torch.no_grad():
@@ -483,7 +484,7 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
                     logging.info(f"W = {W.tolist()}")
                     W[0] = torch.clamp(W[0], min=self.acc)
                     # W[0] = torch.clamp(W[0], min=0)
-                    W , _ = torch.cummax (W*1.5, dim=0)
+                    W , _ = torch.cummax (W*1.25, dim=0)
                     self.temp_world_changed = \
                             torch.clamp(W , max=1.0)[len(W)-round_size:]
                     self.temp_world_changed = torch.clamp(self.temp_world_changed,
@@ -493,8 +494,8 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
                     self.logger.info(f"self.temp_world_changed = {approx_world_changed}")
                     self.acc = self.temp_world_changed[-1]
                     df = pd.DataFrame(zip(image_names,
-                                          self.temp_world_changed.tolist()),
-                                      columns=['id', 'P_world_changed'])
+                                          self.temp_world_changed.tolist(),(1-mean_max_probs).tolist()),
+                                      columns=['id', 'P_world_changed', "instance novelty"])
                     # print(df)
                 # if round_id < self.novelty_free_rounds:
                 if self.acc > self.detection_threshold and round_id > self.pre_novelty_batches:
