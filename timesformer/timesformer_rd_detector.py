@@ -43,7 +43,8 @@ class TimesformerWithRedlightDetector(TimesformerDetector):
 
         :return Path to csv file containing results for detecting change in world
         """
-        super().world_detection(feature_dict, logit_dict, round_id)
+        detection_results = super().world_detection(feature_dict, logit_dict, round_id)
+        detection_df = pd.read_csv(detection_results, header=None)
 
         logging_header = self._add_round_to_header(self.logging_header, round_id)
         self.logger.info(f"{logging_header}: Starting to detect change in world")
@@ -52,12 +53,10 @@ class TimesformerWithRedlightDetector(TimesformerDetector):
         else:
             result_path = f"wd_{self.session_id}_{self.test_id}_{round_id}.csv"
         if self.red_light_ind:
-            prediction = 1
+            detection_df[1] = 1.0
         else:
-            prediction = 0
-        with open(result_path, "w") as f:
-            for image_id in feature_dict.keys():
-                f.write(f"{image_id},{prediction}\n")
+            detection_df[1] = 0.0
+        detection_df.to_csv(result_path, index=False, header=False, float_format='%.4f')
         # Set red_light found after the round
         if red_light_video in feature_dict.keys():
             self.red_light_ind = True
