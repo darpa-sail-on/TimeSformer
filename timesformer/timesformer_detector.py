@@ -144,14 +144,16 @@ class TimesformerDetector:
         else:
             result_path = f"wd_{self.session_id}_{self.test_id}_{round_id}.csv"
         image_names, FVs = zip(*feature_dict.items())
+        class_map = map(self.evm.known_probs,
+                        map(lambda x: torch.Tensor(x).double(), FVs))
+        self.class_probabilities = torch.stack(list(class_map), axis=0)
+        self.max_probabilities, _ = torch.max(self.class_probabilities, axis=2)
+        mean_max_probs = torch.mean(self.max_probabilities, axis=1)
+        instance_novelty = 1 - mean_max_probs
+
         if self.has_world_changed:
             image_predictions =  [1.0]*len(image_names)
         else:
-            class_map = map(self.evm.known_probs,
-                            map(lambda x: torch.Tensor(x).double(), FVs))
-            self.class_probabilities = torch.stack(list(class_map), axis=0)
-            self.max_probabilities, _ = torch.max(self.class_probabilities, axis=2)
-            mean_max_probs = torch.mean(self.max_probabilities, axis=1)
             image_predictions, self.sliding_window = kl_divergence_based_wd(
                     mean_max_probs, self.sliding_window, self.window_size,
                     self.mu_train, self.sigma_train, self.kl_threshold,
@@ -159,8 +161,8 @@ class TimesformerDetector:
             self.acc = image_predictions[-1]
             if self.acc > self.detection_threshold:
                 self.has_world_changed = True
-        df = pd.DataFrame(zip(image_names, image_predictions),
-                          columns=['id', 'P_world_changed'])
+        df = pd.DataFrame(zip(image_names, image_predictions, instance_novelty.tolist()),
+                          columns=['id', 'P_world_changed', 'P_novel'])
         self.logger.info(f"{logging_header}: Number of samples in results {df.shape}")
         df.to_csv(result_path, index=False, header=False, float_format='%.4f')
         self.logger.info(f"{logging_header}: Finished with change detection")
