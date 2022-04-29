@@ -142,10 +142,13 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
         temp = torch.cat(self.train_features['labels'])
         for x in range(len(temp)):
             temp[x] = CLASS_MAPPING[int(temp[x])]
+        self.num_classes = max(temp)
         #This is where we start
         self.train_labels = torch.nn.functional.one_hot(
-            temp.type(torch.long)
-        ).float()
+            temp.type(torch.long),
+        num_classes=int(self.num_classes)+1).float()
+        # print(self.train_labels.shape)
+
         self.train_features = torch.cat(self.train_features['feats'])
         # TODO Store the val features and labels for updating fine tuning.
         #   Currently only used to assess the val performance of model.
@@ -244,6 +247,7 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
         ond_val : torch.Tensor
             The known feature representations as given by ground truth
         ond_unknown : torch.Tensor
+        ond_unknown : torch.Tensor
             The unknown feature representations as given by ground truth
         """
         ond_train = ond_train[~torch.any(ond_train.isnan(), dim=1)]
@@ -287,7 +291,7 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
             # print(sigma_p_batch)
             # print("sigma_p_batch")
             # print(np.sqrt(np.mean((p_train - 1.0)**2)))
-            # assert 8==7
+
 
             return KL_Gaussian(
                 mu=mu_p_batch,
@@ -317,7 +321,7 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
         return kl_sorted[index]
 
     def get_distribution_statistics(self, new_batch):
-        print(torch.mean(self.train_dist))
+        # print(torch.mean(self.train_dist))
         self.pre_novelty_dist = torch.cat((self.pre_novelty_dist,new_batch))
         all_pre_nov = torch.cat((self.pre_novelty_dist,self.train_dist))
         self.mu_train = torch.mean(all_pre_nov)
@@ -415,7 +419,6 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
        #print("torch.log(s/sigma) + (((sigma ** 2) + ((mu - m) ** 2)) / (2 * (s ** 2))) - 0.5" + str(torch.log(s/sigma) + (((sigma ** 2) + ((mu - m) ** 2)) / (2 * (s ** 2))) - 0.5))
 
         kl = torch.log(s/sigma) + (((sigma ** 2) + ((mu - m) ** 2)) / (2 * (s ** 2))) - 0.5
-        # assert 8==7
         return kl
 
     def world_detection(self, feature_dict, logit_dict, round_id=None):
@@ -452,11 +455,11 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
                     self.sliding_window[window_size-self.window_size:]
 
         if len(self.sliding_window) < self.window_size or round_id == 0:
-            df = pd.DataFrame(zip(image_names, [0.0]*len(image_names)))
+            df = pd.DataFrame(zip(image_names, [0.0]*len(image_names),(1-mean_max_probs).tolist()))
         else:
             # Redundant case when acc is 1.0
             if self.acc == 1.0:
-                df = pd.DataFrame(zip(image_names, [1.0]*len(image_names)))
+                df = pd.DataFrame(zip(image_names, [1.0]*len(image_names),(1-mean_max_probs).tolist()))
             else:
                 # Using kl divergence
                 with torch.no_grad():
@@ -474,8 +477,8 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
                     sigma = torch.std(p_window, dim=1)
                     # print(sigma)
                     # print(mu)
-                    print(self.sigma_train)
-                    print(self.mu_train)
+                    # print(self.sigma_train)
+                    # print(self.mu_train)
                     kl_epoch = self.kullback_leibler2(mu, sigma, self.mu_train,
                                                      self.sigma_train)
                     self.logger.info(f"max kl_epoch = {torch.max(kl_epoch)}")
@@ -483,7 +486,7 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
                     logging.info(f"W = {W.tolist()}")
                     W[0] = torch.clamp(W[0], min=self.acc)
                     # W[0] = torch.clamp(W[0], min=0)
-                    W , _ = torch.cummax (W*1.5, dim=0)
+                    W , _ = torch.cummax (W*1.25, dim=0)
                     self.temp_world_changed = \
                             torch.clamp(W , max=1.0)[len(W)-round_size:]
                     self.temp_world_changed = torch.clamp(self.temp_world_changed,
@@ -493,8 +496,8 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
                     self.logger.info(f"self.temp_world_changed = {approx_world_changed}")
                     self.acc = self.temp_world_changed[-1]
                     df = pd.DataFrame(zip(image_names,
-                                          self.temp_world_changed.tolist()),
-                                      columns=['id', 'P_world_changed'])
+                                          self.temp_world_changed.tolist(),(1-mean_max_probs).tolist()),
+                                      columns=['id', 'P_world_changed', "instance novelty"])
                     # print(df)
                 # if round_id < self.novelty_free_rounds:
                 if self.acc > self.detection_threshold and round_id > self.pre_novelty_batches:
@@ -536,7 +539,7 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
         # TODO add switch to classify from TimeSformer, FineTune, or EVM
 
 
-        # TODO absolutely Disgusting hack, sorry guys
+        # TODO fix to do the spacial crops right
         FVs = list(FVs)
         for x in range(len(FVs)):
             if not torch.is_tensor(FVs[x]):
@@ -612,7 +615,6 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
             image_list,
             self.image_names,
         )
-
         if return_details:
             return feedback_df, len(known_image), half_income_per_batch
         return feedback_df
@@ -692,29 +694,48 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
             self.detection_threshold,
             round_id,
         )
-
         # Get the feedback as label text and interpret the feedback
-        raw_feedback_labels = feedback_df[self.feedback_columns].values
+        # raw_feedback_labels = feedback_df[self.feedback_columns].values
 
-        feedback_labels = self.owhar.feedback_interpreter.interpret(
-            raw_feedback_labels,
-        )
-        feedback_labels = torch.mean(feedback_labels,1)
-        temp = torch.zeros((feedback_labels.shape[0], feedback_labels.shape[1] + 1))
-        temp[:, :27] = feedback_labels[:, :27]
-        temp[:, 28:] = feedback_labels[:, 27:]
-        feedback_labels = temp
+        # feedback_labels = self.owhar.feedback_interpreter.interpret(
+        #     raw_feedback_labels,
+        # )
+        # feedback_labels = torch.mean(feedback_labels,1)
+        # temp = torch.zeros((feedback_labels.shape[0], feedback_labels.shape[1] + 1))
+        # temp[:, :27] = feedback_labels[:, :27]
+        # temp[:, 28:] = feedback_labels[:, 27:]
+        # feedback_labels = temp
         features_arr = []
-        for x in feedback_df['id']:
-            features_arr.append(torch.Tensor(self.round_feature_dict[x])[1,:])
-        # Combine the train data with the feedback data for update
+        feedback_labels = []
+        labels = []
+        for index, row in feedback_df.T.iteritems():
+            labels.append(row['labels'])
+        # if max(labels) > self.num_classes:
+            # self.num_classes = max(labels)
+            # temp_labels = []
+            # for x in self.train_labels:
+            #     temp_labels.append(torch.nn.functional.one_hot(
+            #                        torch.argmax(x).type(torch.long),num_classes=int(self.num_classes)+1).float())
+            # self.train_labels = torch.stack(temp_labels)
 
+        for index, row in feedback_df.T.iteritems():
+            temp = torch.Tensor(self.round_feature_dict[row['id']])
+            for x in temp:
+                features_arr.append(torch.Tensor(x))
+                label = int(row['labels'])
+                label = torch.tensor(label)
+                label = torch.clamp(label, max=self.num_classes)
+                feedback_labels.append(torch.nn.functional.one_hot(label.type(torch.long),num_classes=int(self.num_classes)+1).float())
+                # torch.zeros(len)
+                # feedback_labels.append(torch.nn.functional.one_hot())
+        # Combine the train data with the feedback data for update
+        feedback_labels = torch.stack(feedback_labels)
         self.train_features = torch.cat([
             self.train_features,
             torch.stack(features_arr).to(self.train_features.device), # id values are indeices
         ])
 
-
+        # print(self.train_labels)
         self.train_labels = torch.cat([self.train_labels.to(feedback_labels.device), feedback_labels])
 
         # Incremental fits on all prior train and saved feedback
@@ -726,12 +747,10 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
             #val_labels,
             #val_is_feature_repr=True,
         )
-
         # Handle the saving of results with updated predictor etc...
         class_map = map(self.owhar.known_probs, self.round_feature_dict.values())
         self.class_probabilities = torch.stack(list(class_map), axis=0)
         self.max_probabilities, _ = torch.max(self.class_probabilities, axis=2)
-
         # Adaptation given only novelty information after updating the fine
         # tune and the EVM.
         #self.set_detection_threshold(self.binary_novelty_feedback_adapt(
@@ -744,3 +763,4 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
         # TODO adaptation w/ class size update (thus FINCH after deciding novel
         # classes exist and enough samples for them). This won't happen until
         # later difficulties of the DARPA eval.
+
