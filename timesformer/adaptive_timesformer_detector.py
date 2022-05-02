@@ -678,8 +678,7 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
 
         if not self.has_world_changed:
             return
-        if not (not self.first_adapt or round_id % 5 == 0):
-            return
+
         # Adaptation w/o class size update:
         # Update the detection threshold and get FEEDBACK
         # NOTE rm because no binary novelty feedback given in m24.
@@ -734,6 +733,8 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
                 # feedback_labels.append(torch.nn.functional.one_hot())
         # Combine the train data with the feedback data for update
         feedback_labels = torch.stack(feedback_labels)
+
+
         self.train_features = torch.cat([
             self.train_features,
             torch.stack(features_arr).to(self.train_features.device), # id values are indeices
@@ -741,7 +742,8 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
 
         # print(self.train_labels)
         self.train_labels = torch.cat([self.train_labels.to(feedback_labels.device), feedback_labels])
-
+        if not (not self.first_adapt or round_id % 5 == 0):
+            return
         # Incremental fits on all prior train and saved feedback
         self.owhar.fit_increment(
             self.train_features,
