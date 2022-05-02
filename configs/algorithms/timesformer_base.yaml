@@ -20,7 +20,7 @@ timesformer:
         KL_threshold: 2.1389749564639393
         decay_rate: 0.6
         num_rounds: 40
-        threshold_scale: 2.0
+        threshold_scale: 1.0
       evm_params:
         model_path: ${model_root}/timesformer_feats_evm.hdf5
         distance_function: 'cosine'
