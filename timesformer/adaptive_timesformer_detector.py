@@ -63,6 +63,7 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
         self.logging_header = f"session: {session_id}, test id: {test_id}"
         self.test_type = test_type
         self.base_cfg = get_cfg()
+        self.first_adapt = False
         self.base_cfg.MODEL.MODEL_NAME = feature_extractor_params["model_name"]
         self.base_cfg.MODEL.ARCH = feature_extractor_params["arch"]
         self.base_cfg.MODEL.NUM_CLASSES = feature_extractor_params["num_classes"]
@@ -581,6 +582,8 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
         """Get feedback on those detected as novel and fill with those detected
         as non-novel otherwise.
         """
+
+
         m = 1 - torch.mean(max_probabilities, axis=1)
         m = m.detach().cpu().numpy()
 
@@ -675,7 +678,8 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
 
         if not self.has_world_changed:
             return
-
+        if not (not self.first_adapt or round_id % 5 == 0):
+            return
         # Adaptation w/o class size update:
         # Update the detection threshold and get FEEDBACK
         # NOTE rm because no binary novelty feedback given in m24.
@@ -751,6 +755,7 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
         class_map = map(self.owhar.known_probs, self.round_feature_dict.values())
         self.class_probabilities = torch.stack(list(class_map), axis=0)
         self.max_probabilities, _ = torch.max(self.class_probabilities, axis=2)
+        self.first_adapt = True
         # Adaptation given only novelty information after updating the fine
         # tune and the EVM.
         #self.set_detection_threshold(self.binary_novelty_feedback_adapt(
