@@ -742,7 +742,7 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
 
         # print(self.train_labels)
         self.train_labels = torch.cat([self.train_labels.to(feedback_labels.device), feedback_labels])
-        if not (not self.first_adapt or round_id % 10 == 0):
+        if not (not self.first_adapt or round_id % 15 == 0):
             return
         # Incremental fits on all prior train and saved feedback
         self.owhar.fit_increment(
