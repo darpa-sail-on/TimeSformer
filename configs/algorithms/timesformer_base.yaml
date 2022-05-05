@@ -16,11 +16,11 @@ timesformer:
       kl_params:
         window_size: 100
         mu_train: 1.0
-        sigma_train: 0.9727492989192358
-        KL_threshold: 2.1389749564639393
-        decay_rate: 0.6
+        sigma_train: 0.9782050767073722
+        KL_threshold: 1.937980480828133
+        decay_rate: 0.9
         num_rounds: 40
-        threshold_scale: 0.8
+        threshold_scale: 1.0
       evm_params:
         model_path: ${model_root}/timesformer_feats_evm.hdf5
         distance_function: 'cosine'
