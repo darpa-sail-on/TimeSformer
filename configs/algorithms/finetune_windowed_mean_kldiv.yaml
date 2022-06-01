@@ -1,0 +1,87 @@
+# The config for the open world human activity predictor
+timesformer:
+  smqtk:
+    class: AdaptiveTimesformerAdapter
+    config:
+      fe_params:
+        model_name: vit_base_patch16_224
+        num_classes: 29
+        num_perspectives: 5
+        num_locations: 2
+        num_relations: 52
+        arch: vit
+        checkpoint_file_path: ${model_root}/checkpoint_epoch_00015.pyth
+        num_gpus: 1
+      dataloader_params:
+        num_workers: 12
+        pin_memory: True
+        num_ensemble_views: 1
+        num_spatial_crops: 3
+        batch_size: 1
+        n_threads: 0
+        num_frames: 8
+        sampling_rate: 32
+        train_jitter_scales: [256, 320]
+        test_crop_size: 224
+        input_channel_num: [3]
+      detection_threshold: 0.5
+      data_params: # Everything not todo w/ predictor (data)
+        pred_known_map: "${model_root}/ordered_par_classes.txt"
+        #pred_label_encs: "${model_root}/clip_par_ontology_idx_sorted_label_text_encs.pt"
+        #feedback_known_map: "${model_root}/unique_sorted_actions.csv"
+        #feedback_label_encs: "${model_root}/clip_sorted_label_text_encs.pt"
+        train_feature_path: "${model_root}/timesformer_train_feats.bin"
+        thresh_set_data: "${model_root}/timesformer_test_feats.bin"
+        #feedback_weight: 1.0 # binary novelty feedback
+      predictor: # Read as a dict to be parsed by docstr's generated CAP.
+        docstr:
+          style: numpy
+          from import:
+            arn.models.fine_tune:
+              - FineTuneFC
+            arn.models.fine_tune_lit:
+              - FineTuneLit
+              - FineTuneFCLit
+              - init_trainer
+              - init_tensorboard_logger
+            arn.models.novelty_detector:
+              - WindowedMeanKLDiv
+            arn.models.owhar:
+              - OWHAPredictor
+        OWHAPredictor:
+          # TODO Handle creation of the LabelEncoder
+          fine_tune:
+            FineTuneLit:
+              model:
+                FineTuneFCLit:
+                  model:
+                    FineTuneFC:
+                      input_size: 768
+                      width: 512
+                      depth: 5
+                      dropout: 0.5
+                      n_classes: 30 #401
+              batch_size: 1000
+              trainer:
+                init_trainer:
+                  max_epochs: 20
+                  gpus: 1
+                  # Want checkpointing or predictor logger? Set the paths
+                  enable_checkpointing: False
+                  #default_root_dir: ./results/timesformer/fine-tune/chkpts/
+                  #logger:
+                  #  init_tensorboard_logger:
+                  #    save_dir: ./results/timesformer/fine-tune/tb_log/
+          novelty_detector: # Classification + Clustering
+            WindowedMeanKLDiv:
+              kl_threshold: 5.365822113508410
+              kl_threshold_decay_rate: 0.6
+              mean_train: 1.0
+              std_dev_train: 0.1242729408792351
+              window_size: 100
+              num_rounds: 40
+              #threshold_scale: 3.0 # Hack to scale down early detection.
+            #feedback_interpreter:
+            #  CLIPFeedbackInterpreter: not supported atm as this was cut.
+            #    clip_path: "${model_root}/clip_ViT-B_32.pt"
+            #    clip_templates: "${model_root}/k700_templates.txt"
