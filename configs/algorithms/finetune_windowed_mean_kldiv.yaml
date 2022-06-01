@@ -26,6 +26,7 @@ timesformer:
         input_channel_num: [3]
       detection_threshold: 0.5
       data_params: # Everything not todo w/ predictor (data)
+        dtype: float32
         pred_known_map: "${model_root}/ordered_par_classes.txt"
         #pred_label_encs: "${model_root}/clip_par_ontology_idx_sorted_label_text_encs.pt"
         #feedback_known_map: "${model_root}/unique_sorted_actions.csv"
@@ -48,6 +49,8 @@ timesformer:
               - WindowedMeanKLDiv
             arn.models.owhar:
               - OWHAPredictor
+          log_sink: stdout
+          log_level: DEBUG
         OWHAPredictor:
           # TODO Handle creation of the LabelEncoder
           fine_tune:
@@ -62,16 +65,19 @@ timesformer:
                       dropout: 0.5
                       n_classes: 30 #401
               batch_size: 1000
+              predict_batch_size: 1
               trainer:
                 init_trainer:
                   max_epochs: 20
                   gpus: 1
                   # Want checkpointing or predictor logger? Set the paths
                   enable_checkpointing: False
-                  #default_root_dir: ./results/timesformer/fine-tune/chkpts/
-                  #logger:
-                  #  init_tensorboard_logger:
-                  #    save_dir: ./results/timesformer/fine-tune/tb_log/
+                  # NOTE for whatever reason, these are necessary... None for
+                  # pytorch lightning Trainer logger doesn't work?
+                  default_root_dir: ./results/timesformer/fine-tune/chkpts/
+                  logger:
+                    init_tensorboard_logger:
+                      save_dir: ./results/timesformer/fine-tune/tb_log/
           novelty_detector: # Classification + Clustering
             WindowedMeanKLDiv:
               kl_threshold: 5.365822113508410

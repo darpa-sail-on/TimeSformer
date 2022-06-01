@@ -104,7 +104,7 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
 
         self.train_labels = torch.nn.functional.one_hot(
             temp.type(torch.long)
-        ).float()
+        )#.float()
 
         self.train_features = torch.cat(self.train_features['feats'])
 
@@ -113,8 +113,10 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
         if self.feedback_obj:
             self.feedback_weight = data_params.get('feedback_weight', 1.0)
 
+        self.dtype = getattr(torch, data_params.get('dtype', 'double'))
+
         # Parse the predictor params using docstr
-        self.predictor = docstr_cap(predictor, return_prog=True)
+        self.predictor = docstr_cap(predictor, True, True)
         self.predictor.label_enc = NominalDataEncoder.load(
             data_params['pred_known_map']
         )
@@ -126,6 +128,23 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
         self.interpret_activity_feedback = hasattr(
             self.predictor,
             'feedback_interpreter',
+        )
+
+        logging.debug(
+            'type(self.train_features) = %s',
+            type(self.train_features),
+        )
+        logging.debug(
+            'self.train_features.shape = %s',
+            self.train_features.shape,
+        )
+        logging.debug(
+            'type(self.train_labels) = %s',
+            type(self.train_labels),
+        )
+        logging.debug(
+            'self.train_labels.shape = %s',
+            self.train_labels.shape,
         )
 
         # Fit the OWHAR fine tune model on the given train data, if not loaded
@@ -142,11 +161,29 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
                 )
             test_features = torch.load(data_params['thresh_set_data'])
 
+            logging.debug(
+                "type(self.test_features['known']) = %s",
+                type(test_features['known']),
+            )
+            logging.debug(
+                "type(self.test_features['known'].shape) = %s",
+                test_features['known'].shape,
+            )
+            logging.debug(
+                "type(self.test_features['unknown']) = %s",
+                type(test_features['unknown']),
+            )
+            logging.debug(
+                "type(self.test_features['unknown'].shape) = %s",
+                test_features['unknown'].shape,
+            )
+
             # NOTE self.detection_threshold is NOT informed from val, atm
             self.predictor.novelty_detector.kl_threshold = self.find_kl_threshold(
                 self.train_features,
                 test_features['known'],
                 test_features['unknown'],
+                dtype=self.dtype,
             )
 
         logger.info("%s: Initialization complete", self.logging_header)
@@ -162,6 +199,7 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
         number_of_evaluation=1,
         n_cpu=4,
         max_percentage_of_early=5.0,
+        dtype=None
     ):
         """Copy pasted from kl_finder.py in Kitware's code to preserve
         functionality and meet deadlines.
@@ -173,6 +211,8 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
         ond_unknown : torch.Tensor
             The unknown feature representations as given by ground truth
         """
+        if dtype is None:
+            dtype = torch.double
         ond_train = ond_train[~torch.any(ond_train.isnan(), dim=1)]
         ond_val = ond_val[~torch.any(ond_val.isnan(), dim=1)]
         ond_unknown = ond_unknown[~torch.any(ond_unknown.isnan(), dim=1)]
@@ -180,12 +220,12 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
         # TODO may have to add predictor arg to find kl thresholds of sub tasks
         p_train = []
         for i in tqdm(range(0, ond_train.shape[0], evm_batch_size)):
-            t1 = self.predictor.known_probs(ond_train[i:i+evm_batch_size].double())
+            t1 = self.predictor.known_probs(ond_train[i:i+evm_batch_size].to(dtype))
             p_train.append(t1)
         p_train = torch.cat(p_train).detach().cpu().numpy()
 
-        p_val = self.predictor.known_probs(ond_val.double())
-        p_unknown = self.predictor.known_probs(ond_unknown.double())
+        p_val = self.predictor.known_probs(ond_val.to(dtype))
+        p_unknown = self.predictor.known_probs(ond_unknown.to(dtype))
         p_val = p_val.detach().cpu().numpy()
         p_unknown = p_unknown.detach().cpu().numpy()
 
@@ -269,7 +309,7 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
 
         image_names, FVs = zip(*feature_dict.items())
         class_map = map(self.predictor.known_probs,
-                        map(lambda x: torch.Tensor(x).double(), FVs))
+                        map(lambda x: torch.Tensor(x).to(self.dtype), FVs))
         self.class_probabilities = torch.stack(list(class_map), axis=0)
         self.max_probabilities = torch.max(self.class_probabilities, axis=2)[0]
 
