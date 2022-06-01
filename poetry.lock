@@ -1233,7 +1233,7 @@ dev = ["pre-commit", "black", "flake8"]
 [package.source]
 type = "git"
 url = "https://github.com/prijatelj/vast.git"
-reference = "update-atol-precision"
+reference = "massive_memory_use"
 resolved_reference = "d88e2e2920565adce81c4c3e958bf7ccebeac42c"
 
 [[package]]

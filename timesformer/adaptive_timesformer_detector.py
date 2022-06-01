@@ -15,12 +15,10 @@ from timesformer.datasets.ta2 import TimesformerEval
 from timesformer.models import build_model
 from timesformer.timesformer_detector import TimesformerDetector
 
-#from arn.models.novelty_recognizer import FINCHRecognizer
-from arn.models.feedback import CLIPFeedbackInterpreter
-from arn.models.fine_tune import FineTune, FineTuneFCANN
-from arn.models.novelty_detector import WindowedMeanKLDiv
-from arn.models.owhar import OWHAPredictorEVM
-from vast.opensetAlgos.extreme_value_machine import ExtremeValueMachine
+# For config parsing of arn predictor.
+from docstr.cli.cli import docstr_cap
+
+logger = logging.getLogger(__name__)
 
 
 class AdaptiveTimesformerDetector(TimesformerDetector):
@@ -30,12 +28,10 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
         test_id,
         test_type,
         feature_extractor_params,
-        kl_params,
-        evm_params,
-        fine_tune_params,
-        feedback_interpreter_params,
         dataloader_params,
         detection_threshold,
+        data_params,
+        predictor,
         feedback_obj,
     ):
         """
@@ -45,15 +41,14 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
         :param test_id (int): Test id for the test
         :param test_type (str): Type of test
         :param feature_extractor_params (dict): Parameters for feature extractor
-        :param kl_params (dict): Parameter for kl divergence
-        :param evm_params (dict): Parameter for evm
         :param dataloader_params (dict): Parameters for dataloader
         :param detection_threshold (float): The threshold for binary detection
+        :param data_params (dict): The params for data pertaining to arn
+        :param predictor (dict): The config for arn predictor, parsed w/ docstr
         :param feedback_obj: An instance used for requesting feedback
         """
         # TODO some of this can be resolved with super().init, but needs
         # thought thru. For now all that matters is it will work.
-        self.logger = logging.getLogger(__name__)
         self.session_id = session_id
         self.test_id = test_id
         self.logging_header = f"session: {session_id}, test id: {test_id}"
@@ -84,20 +79,6 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
         self.number_workers = dataloader_params["n_threads"]
         self.pin_memory = dataloader_params["pin_memory"]
 
-        if feedback_interpreter_params:
-            self.interpret_activity_feedback = True
-            interpreter = CLIPFeedbackInterpreter(
-                feedback_interpreter_params['clip_path'],
-                feedback_interpreter_params['clip_templates'],
-                feedback_interpreter_params['pred_known_map'],
-                feedback_interpreter_params['pred_label_encs'],
-                feedback_interpreter_params['feedback_known_map'],
-                feedback_interpreter_params['feedback_label_encs'],
-            )
-        else:
-            interpreter=None
-            self.interpret_activity_feedback = False
-
         self.feedback_columns = [
             "class1",
             "class2",
@@ -107,9 +88,7 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
         ]
 
         # Must store the train features and labels for updating fine tuning.
-        self.train_features = torch.load(
-            feedback_interpreter_params['train_feature_path'],
-        )
+        self.train_features = torch.load(data_params['train_feature_path'])
 
         CLASS_MAPPING = [15,1,28,6,29,3, 20,22,23,9,7,10,11,13,14,17,18,5,8,19,24,12,16,26,4,21,0,25,2]
 
@@ -126,80 +105,46 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
             temp.type(torch.long)
         ).float()
 
-
         self.train_features = torch.cat(self.train_features['feats'])
 
-        # TODO Store the val features and labels for updating fine tuning.
-        #   Currently only used to assess the val performance of model.
-        #self.val_features = torch.load(
-        #    feedback_interpreter_params['val_feature_path'],
-        #)
-        #self.val_labels = torch.nn.functional.one_hot(
-        #    torch.cat(self.val_features['labels']).type(torch.long)
-        #)
-        #self.val_features = torch.cat(self.val_features['feats'])
+
+        # TODO characterization requires an predictor per subtask.
+        self.feedback_obj = feedback_obj
+        if self.feedback_obj:
+            self.feedback_weight = data_params.get('feedback_weight', 1.0)
+
+
+        # TODO Parse the predictor params using docstr
+        self.predictor = docstr_cap(predictor, return_prog=True)
 
         # OWHAR: FineTune, EVM, FINCH, CLIP Feedback Interpreter args
-        classlist = list(interpreter.pred_known_map.encoder)
-        del classlist[27]
-        self.owhar = OWHAPredictorEVM(
-            FineTune(
-                FineTuneFCANN(
-                    fine_tune_params["model"]['input_size'],
-                    out_features=fine_tune_params["model"]['input_size'],
-                    n_classes=30
-                ),
-                fine_tune_params["fit_args"],
-                device=torch.device('cuda'),
-            ),
-            ExtremeValueMachine(
-                #device=torch.device("cuda:0"),
-                labels=classlist,
-                **evm_params,
-            ),
-            WindowedMeanKLDiv(
-                detection_threshold=detection_threshold,
-                kl_threshold=kl_params["KL_threshold"],
-                kl_threshold_decay_rate=kl_params["decay_rate"],
-                mean_train=kl_params["mu_train"],
-                std_dev_train=kl_params["sigma_train"],
-                window_size=kl_params["window_size"],
-                num_rounds=kl_params["num_rounds"],
-            ),
-            interpreter,
+        #classlist = list(interpreter.pred_known_map.encoder)
+        #del classlist[27]
+
+        self.interpret_activity_feedback = hasattr(
+            self.predictor,
+            'feedback_interpreter',
         )
 
-        # Fit the OWHAR model on the given data.
-        self.owhar.fit_increment(
-            self.train_features,
-            self.train_labels,
-            True,
-        )
+        # Fit the OWHAR fine tune model on the given train data, if not loaded
+        self.predictor.fit(self.train_features, self.train_labels) #, True)
 
         # Obtain detection threshold and kl threshold if None provided
-        if feedback_interpreter_params['thresh_set_data']:
-            if self.owhar.novelty_detector.kl_threshold is not None:
+        if data_params['thresh_set_data']:
+            if self.predictor.novelty_detector.kl_threshold is not None:
                 logging.warning(
                     'kl_threshold was already set, but finding from data',
                 )
-
-            test_features = torch.load(
-                feedback_interpreter_params['thresh_set_data'],
-            )
+            test_features = torch.load(data_params['thresh_set_data'])
 
             # NOTE self.detection_threshold is NOT informed from val, atm
-            self.owhar.novelty_detector.kl_threshold = self.find_kl_threshold(
+            self.predictor.novelty_detector.kl_threshold = self.find_kl_threshold(
                 self.train_features,
                 test_features['known'],
                 test_features['unknown'],
             )
 
-        # TODO characterization requires an owhar per subtask.
-        self.feedback_obj = feedback_obj
-        if self.feedback_obj:
-            self.feedback_weight = kl_params['feedback_weight']
-
-        self.logger.info(f"{self.logging_header}: Initialization complete")
+        logger.info("%s: Initialization complete", self.logging_header)
 
     def find_kl_threshold(
         self,
@@ -227,15 +172,15 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
         ond_val = ond_val[~torch.any(ond_val.isnan(), dim=1)]
         ond_unknown = ond_unknown[~torch.any(ond_unknown.isnan(), dim=1)]
 
-        # TODO may have to add owhar arg to find kl thresholds of sub tasks
+        # TODO may have to add predictor arg to find kl thresholds of sub tasks
         p_train = []
         for i in tqdm(range(0, ond_train.shape[0], evm_batch_size)):
-            t1 = self.owhar.known_probs(ond_train[i:i+evm_batch_size].double())
+            t1 = self.predictor.known_probs(ond_train[i:i+evm_batch_size].double())
             p_train.append(t1)
         p_train = torch.cat(p_train).detach().cpu().numpy()
 
-        p_val = self.owhar.known_probs(ond_val.double())
-        p_unknown = self.owhar.known_probs(ond_unknown.double())
+        p_val = self.predictor.known_probs(ond_val.double())
+        p_unknown = self.predictor.known_probs(ond_unknown.double())
         p_val = p_val.detach().cpu().numpy()
         p_unknown = p_unknown.detach().cpu().numpy()
 
@@ -287,18 +232,18 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
 
     @property
     def has_world_changed(self):
-        return self.owhar.novelty_detector.has_world_changed
+        return self.predictor.novelty_detector.has_world_changed
 
     @property
     def acc(self):
-        return self.owhar.novelty_detector.accuracy
+        return self.predictor.novelty_detector.accuracy
 
     @property
     def detection_threshold(self):
-        return self.owhar.novelty_detector.detection_threshold
+        return self.predictor.novelty_detector.detection_threshold
 
     def set_detection_threshold(self, value):
-        self.owhar.novelty_detector.detection_threshold = value
+        self.predictor.novelty_detector.detection_threshold = value
 
     def world_detection(self, feature_dict, logit_dict, round_id=None):
         """
@@ -311,14 +256,14 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
         :return string containing path to csv file with the results
         """
         logging_header = self._add_round_to_header(self.logging_header, round_id)
-        self.logger.info(f"{logging_header}: Starting to detect change in world")
+        logger.info("%s: Starting to detect change in world", logging_header)
         if round_id is None:
             result_path = f"wd_{self.session_id}_{self.test_id}.csv"
         else:
             result_path = f"wd_{self.session_id}_{self.test_id}_{round_id}.csv"
 
         image_names, FVs = zip(*feature_dict.items())
-        class_map = map(self.owhar.known_probs,
+        class_map = map(self.predictor.known_probs,
                         map(lambda x: torch.Tensor(x).double(), FVs))
         self.class_probabilities = torch.stack(list(class_map), axis=0)
         self.max_probabilities = torch.max(self.class_probabilities, axis=2)[0]
@@ -329,10 +274,10 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
         if round_id == 0:
             detections = torch.zeros(len(image_names))
         else:
-            detections = self.owhar.novelty_detector.detect(
+            detections = self.predictor.novelty_detector.detect(
                 self.max_probabilities,
                 True,
-                self.logger,
+                logger,
             )
 
         df = pd.DataFrame(
@@ -340,18 +285,18 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
             columns=['id', 'P_world_changed'],
         )
 
-        # TODO self.has_world_changed = ... Make properties for these
-        #   self.temp_world_changed
-        #   self. other selfs...
-
-        self.logger.info(f"{logging_header}: Number of samples in results {df.shape}")
+        logger.info(
+            "%s: Number of samples in results %s",
+            logging_header,
+            df.shape,
+        )
         df.to_csv(result_path, index=False, header=False, float_format='%.4f')
-        self.logger.info(f"{logging_header}: Finished with change detection")
+        logger.info("%s: Finished with change detection", logging_header)
 
         return result_path
 
-    def classification(self, owhar, feature_dict, logit_dict, round_id=None):
-        """Perform classification with the given owhar predictor."""
+    def classification(self, predictor, feature_dict, logit_dict, round_id=None):
+        """Perform classification with the given predictor predictor."""
         # TODO The subtasks that consist of characterization are all
         # classification tasks. As was done for the HWR, make a
         raise NotImplementedError(
@@ -360,14 +305,14 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
 
     def novelty_classification(self, feature_dict, logit_dict, round_id=None):
         logging_header = self._add_round_to_header(self.logging_header, round_id)
-        self.logger.info(f"{logging_header}: Starting to classify samples")
+        logger.info("%s: Starting to classify samples", logging_header)
         image_names, FVs = zip(*feature_dict.items())
         self.image_names = list(image_names)
 
         # TODO if world_detection not run first, have to run probs throu
 
         #if not hasattr(self, "class_probabilities"):
-        #    class_map = map(self.owhar.known_probs, FVs)
+        #    class_map = map(self.predictor.known_probs, FVs)
         #    self.class_probabilities = torch.stack(list(class_map), axis=0)
         #    self.max_probabilities, _ = torch.max(self.class_probabilities, axis=2)
         #    self.round_feature_dict = feature_dict
@@ -383,11 +328,11 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
             else: FVs[x] = FVs[x][1]
         # End of disgusting hack, lol
         temp = torch.stack(FVs, axis=0).to(torch.device('cuda:0'))
-        fine_tune_preds = self.owhar.fine_tune.predict(
+        fine_tune_preds = self.predictor.fine_tune.predict(
             temp,
         )
-        self.logger.info(f"Softmax scores: {torch.argmax(fine_tune_preds, dim=1)}")
-        self.logger.info(f"Acc: {self.acc}")
+        logger.info("Softmax scores: %s", torch.argmax(fine_tune_preds, dim=1))
+        logger.info("Acc: %s", self.acc)
         pu = torch.zeros(fine_tune_preds.shape[0],).view(-1, 1).to(torch.device('cuda:0'))
         all_rows_tensor = torch.cat((fine_tune_preds, pu), 1)
         norm = torch.norm(all_rows_tensor, p=1, dim=1)
@@ -399,12 +344,12 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
         else:
             result_path = f"ncl_{self.session_id}_{self.test_id}_{round_id}.csv"
         df.to_csv(result_path, index = False, header = False, float_format='%.4f')
-        self.logger.info(f"{logging_header}: Finished classifying samples")
+        logger.info("%s: Finished classifying samples", logging_header)
         return result_path
 
     def _add_round_to_header(self, logger_header, round_id):
         if round_id is not None:
-            logger_header += " Round id: {}".format(round_id)
+            logger_header += f" Round id: {round_id}"
         return logger_header
 
     def get_feedback(
@@ -486,8 +431,8 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
         known_pred_wrong = len(known_labels[known_labels == 88])
         unknown_pred_wrong = len(unknown_labels[unknown_labels != 88])
 
-        self.logger.info(f"Known pred wrong: {known_pred_wrong}")
-        self.logger.info(f"Unknown pred wrong: {unknown_pred_wrong}")
+        logger.info("Known pred wrong: %d", known_pred_wrong)
+        logger.info("Unknown pred wrong: %d", unknown_pred_wrong)
 
         unknown_acc = unknown_pred_wrong/half_income_per_batch
         known_acc = known_pred_wrong/half_income_per_batch
@@ -497,7 +442,7 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
         if self.feedback_weight * known_acc > 0.0:
             detection_threshold += self.feedback_weight*known_acc
 
-        self.logger.info(f"New detection threshold is {detection_threshold}")
+        logger.info("New detection threshold is %f", detection_threshold)
         if feedback_df is None:
             return np.clip(detection_threshold, 0.0, 1.0), data_frame
         return np.clip(detection_threshold, 0.0, 1.0)
@@ -507,7 +452,7 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
         Novelty adaptation
         :param round_id: round id in a test
         """
-        self.logger.info(f"Starting novelty_adaption: {round_id}")
+        logger.info("Starting novelty_adaption: %s", round_id)
         if not self.has_world_changed:
             return
 
@@ -533,7 +478,7 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
         # Get the feedback as label text and interpret the feedback
         raw_feedback_labels = feedback_df[self.feedback_columns].values
 
-        feedback_labels = self.owhar.feedback_interpreter.interpret(
+        feedback_labels = self.predictor.feedback_interpreter.interpret(
             raw_feedback_labels,
         )
         feedback_labels = torch.mean(feedback_labels,1)
@@ -556,7 +501,7 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
         self.train_labels = torch.cat([self.train_labels.to(feedback_labels.device), feedback_labels])
 
         # Incremental fits on all prior train and saved feedback
-        self.owhar.fit_increment(
+        self.predictor.fit_increment(
             self.train_features,
             self.train_labels,
             is_feature_repr=True,
@@ -566,7 +511,7 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
         )
 
         # Handle the saving of results with updated predictor etc...
-        class_map = map(self.owhar.known_probs, self.round_feature_dict.values())
+        class_map = map(self.predictor.known_probs, self.round_feature_dict.values())
         self.class_probabilities = torch.stack(list(class_map), axis=0)
         self.max_probabilities, _ = torch.max(self.class_probabilities, axis=2)
 

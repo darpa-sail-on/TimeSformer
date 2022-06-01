@@ -10,13 +10,10 @@ from timesformer.timesformer_adapter import TimesformerAdapter
 class AdaptiveTimesformerAdapter(TimesformerAdapter):
     def __init__(self,
                  fe_params,
-                 kl_params,
-                 evm_params,
-                 fine_tune_params,
-                 feedback_interpreter_params,
-                 #characterization_params,
                  dataloader_params,
-                 detection_threshold) -> None:
+                 detection_threshold,
+                 data_params,
+                 predictor) -> None:
         """
         Constructor for X3D adapter
 
@@ -24,12 +21,10 @@ class AdaptiveTimesformerAdapter(TimesformerAdapter):
             None
         """
         self.fe_params = fe_params
-        self.kl_params = kl_params
-        self.evm_params = evm_params
         self.dataloader_params = dataloader_params
-        self.fine_tune_params = fine_tune_params
-        self.feedback_interpreter_params = feedback_interpreter_params
         self.detection_threshold = detection_threshold
+        self.data_params = data_params
+        self.predictor = predictor
         ONDAgent.__init__(self)
         self.step_dict = {"Initialize": self.initialize,
                           "FeatureExtraction": self.feature_extraction,
@@ -57,12 +52,10 @@ class AdaptiveTimesformerAdapter(TimesformerAdapter):
                                             toolset['test_id'],
                                             toolset['test_type'],
                                             self.fe_params,
-                                            self.kl_params,
-                                            self.evm_params,
-                                            self.fine_tune_params,
-                                            self.feedback_interpreter_params,
                                             self.dataloader_params,
                                             self.detection_threshold,
+                                            self.data_params,
+                                            self.predictor,
                                             feedback_obj)
 
 
