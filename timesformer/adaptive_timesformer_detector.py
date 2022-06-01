@@ -17,6 +17,7 @@ from timesformer.timesformer_detector import TimesformerDetector
 
 # For config parsing of arn predictor.
 from docstr.cli.cli import docstr_cap
+from exputils.data.labels import NominalDataEncoder
 
 logger = logging.getLogger(__name__)
 
@@ -107,15 +108,16 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
 
         self.train_features = torch.cat(self.train_features['feats'])
 
-
         # TODO characterization requires an predictor per subtask.
         self.feedback_obj = feedback_obj
         if self.feedback_obj:
             self.feedback_weight = data_params.get('feedback_weight', 1.0)
 
-
-        # TODO Parse the predictor params using docstr
+        # Parse the predictor params using docstr
         self.predictor = docstr_cap(predictor, return_prog=True)
+        self.predictor.label_enc = NominalDataEncoder.load(
+            data_params['pred_known_map']
+        )
 
         # OWHAR: FineTune, EVM, FINCH, CLIP Feedback Interpreter args
         #classlist = list(interpreter.pred_known_map.encoder)
@@ -127,7 +129,10 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
         )
 
         # Fit the OWHAR fine tune model on the given train data, if not loaded
-        self.predictor.fit(self.train_features, self.train_labels) #, True)
+        self.predictor.fit(torch.utils.data.TensorDataset(
+            self.train_features,
+            self.train_labels,
+        ))
 
         # Obtain detection threshold and kl threshold if None provided
         if data_params['thresh_set_data']:
@@ -501,14 +506,10 @@ class AdaptiveTimesformerDetector(TimesformerDetector):
         self.train_labels = torch.cat([self.train_labels.to(feedback_labels.device), feedback_labels])
 
         # Incremental fits on all prior train and saved feedback
-        self.predictor.fit_increment(
+        self.predictor.fit(torch.utils.data.TensorDataset(
             self.train_features,
             self.train_labels,
-            is_feature_repr=True,
-            #val_input_samples,
-            #val_labels,
-            #val_is_feature_repr=True,
-        )
+        ))
 
         # Handle the saving of results with updated predictor etc...
         class_map = map(self.predictor.known_probs, self.round_feature_dict.values())
