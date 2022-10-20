@@ -414,9 +414,10 @@ We actively welcome your pull requests. Please see [CONTRIBUTING.md](CONTRIBUTIN
 
 # Acknowledgements
 
-The fork uses the original [TimeSformer](https://github.com/facebookresearch/TimeSformer),
-[PySlowFast](https://github.com/facebookresearch/SlowFast), and
-[pytorch-image-models](https://github.com/rwightman/pytorch-image-models) by [Ross Wightman](https://github.com/rwightman).
+The fork uses the original [TimeSformer](https://github.com/facebookresearch/TimeSformer) ([Creative Commons Attribution-NonCommercial 4.0 International Public
+License](https://github.com/facebookresearch/TimeSformer/blob/main/LICENSE)),
+[PySlowFast](https://github.com/facebookresearch/SlowFast) ([Apache License 2.0](https://github.com/facebookresearch/SlowFast/blob/main/LICENSE)), and
+[pytorch-image-models](https://github.com/rwightman/pytorch-image-models) ([Apache License 2.0](https://github.com/rwightman/pytorch-image-models/blob/main/LICENSE)) by [Ross Wightman](https://github.com/rwightman).
 We thank the authors for releasing their code. If you use our model, please consider citing these works as well:
 
 ```BibTeX
