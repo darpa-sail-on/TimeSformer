@@ -450,3 +450,7 @@ We thank the authors for releasing their code. If you use our model, please cons
   howpublished = {\url{https://github.com/rwightman/pytorch-image-models}}
 }
 ```
+
+# Acknowledgement of Support and Disclaimer
+
+This material is based upon work supported by the Defense Advanced Research Projects Agency (DARPA) under Contract No. HR001120C0055. Any opinions, findings and conclusions or recommendations expressed in this material are those of the author(s) and do not necessarily reflect the views of the DARPA.
